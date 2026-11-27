@@ -73,6 +73,27 @@ button:focus-visible{outline:4px solid var(--sun);outline-offset:3px}
 .wchip.found{background:var(--leaf);color:#fff;box-shadow:none}
 .wchip.found b{text-decoration:line-through;text-decoration-thickness:3px}
 .wchip.miss{background:var(--line)}
+/* two players */
+.score{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.score div{background:var(--card);border-radius:20px;padding:12px 16px;box-shadow:0 5px 0 var(--line);display:flex;align-items:center;justify-content:space-between;font-weight:800;font-size:19px}
+.score div b{font-family:Fredoka,sans-serif;font-size:34px}
+.score .p1 b{color:var(--ocean)}.score .p2 b{color:var(--coral)}
+.score .now{outline:4px solid var(--sun)}
+.cover{background:var(--ocean);color:#fff;border-radius:28px;padding:clamp(24px,5vw,48px);text-align:center}
+.cover h2{font-size:clamp(30px,5vw,44px);font-weight:700}
+.cover p{font-size:20px;margin:12px 0 22px}
+.cover .eyes{font-size:72px;line-height:1}
+.secret{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center;text-align:left}
+.secret .flag{font-size:110px}
+.secret h2{font-size:clamp(34px,6vw,52px);font-weight:700}
+.secret .shh{display:inline-block;background:var(--coral);color:#fff;border-radius:999px;padding:4px 12px;font-weight:800;font-size:14px;margin-bottom:6px}
+.dclue{display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:14px 16px;border-radius:18px;background:var(--bg);font-size:clamp(18px,2.8vw,21px);font-weight:700;min-height:60px}
+.dclue .num{flex:none;width:36px;height:36px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-family:Fredoka,sans-serif}
+.dclue.used{opacity:.5}.dclue.used .num{background:var(--leaf);color:#fff}
+.duobtns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+.duobtns .next{width:100%}
+.btn-no{min-height:64px;border-radius:20px;background:var(--card);box-shadow:0 5px 0 var(--line);font-family:Fredoka,sans-serif;font-weight:600;font-size:22px}
+@media(max-width:520px){.secret{grid-template-columns:1fr;text-align:center}.duobtns{grid-template-columns:1fr}}
 .note{max-width:1100px;margin:0 auto 24px;padding:0 max(5vw,16px);color:var(--soft);font-size:14px}
 .warn{background:#fff0c2;color:#5a4300;border-radius:14px;padding:10px 14px;margin:0 auto 14px;max-width:1100px}
 
@@ -225,9 +246,13 @@ button:focus-visible{outline:4px solid var(--sun);outline-offset:3px}
       <svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#e2f6e9"/><path d="M30 46l14 26M48 44v28M66 46L52 72" stroke="#7a8a9a" stroke-width="2"/><ellipse cx="30" cy="32" rx="12" ry="15" fill="#ff5a5f"/><ellipse cx="48" cy="26" rx="12" ry="15" fill="#ffc83d"/><ellipse cx="66" cy="32" rx="12" ry="15" fill="#1679c9"/><path d="M38 70h20l-3 12H41z" fill="#a0703f"/></svg>
       <div><h2>Spell It</h2><p>Guess the letters before all the balloons pop!</p></div>
     </button>
-    <button class="mode wide" data-mode="words">
+    <button class="mode" data-mode="words">
       <svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#efe4ff"/><rect x="20" y="20" width="56" height="56" rx="10" fill="#fff" stroke="#a66cff" stroke-width="3"/><rect x="24" y="40" width="48" height="16" rx="8" fill="#ffc83d"/><g font-family="Fredoka,sans-serif" font-weight="700" font-size="13" fill="#13283f" text-anchor="middle"><text x="34" y="35">K</text><text x="48" y="35">Q</text><text x="62" y="35">E</text><text x="34" y="53">P</text><text x="48" y="53">E</text><text x="62" y="53">R</text><text x="34" y="71">L</text><text x="48" y="71">A</text><text x="62" y="71">U</text></g></svg>
       <div><h2>Word Search</h2><p>Find the hidden countries. Drag across the letters, or tap the first letter and then the last. A new puzzle every time!</p></div>
+    </button>
+    <button class="mode" data-mode="duo">
+      <svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#ffe9d6"/><circle cx="32" cy="40" r="11" fill="#ffd2a8"/><path d="M14 76c0-12 8-20 18-20s18 8 18 20z" fill="#1679c9"/><circle cx="64" cy="40" r="11" fill="#e0a77a"/><path d="M46 76c0-12 8-20 18-20s18 8 18 20z" fill="#ff5a5f"/><rect x="54" y="35" width="20" height="7" rx="3.5" fill="#13283f"/><path d="M40 18h16v12H44l-4 4z" fill="#ffc83d"/><text x="48" y="28" font-family="Fredoka,sans-serif" font-weight="700" font-size="10" text-anchor="middle" fill="#13283f">?</text></svg>
+      <div><h2>Two Players</h2><p>One player sees a secret country and gives clues. The other guesses without looking!</p></div>
     </button>
   </div>
   <p class="note">Stars and stamps are saved on this tablet. The Map game needs an internet connection to load the map.</p>
@@ -494,7 +519,7 @@ const SCREENS=['home','game','done','passport'];
 function show(id){SCREENS.forEach(s=>$(s).hidden=s!==id);$('homeBtn').hidden=id==='home';window.scrollTo(0,0);try{speechSynthesis.cancel()}catch(e){}}
 
 /* ---------- round setup ---------- */
-const ROUND={flags:10,map:8,clues:8,spell:5,words:6};
+const ROUND={flags:10,map:8,clues:8,spell:5,words:6,duo:1};
 /* Easy = well-known countries; Medium adds more; Hard = all 195 */
 const EASY='SG MY ID TH VN PH CN JP KR IN AU NZ US CA MX BR AR GB FR DE IT ES PT NL CH SE NO RU EG ZA KE NG GR TR SA AE IE BE DK FI PL AT CL PE CO JM CU NP PK LK BD KH'.split(' ');
 const MEDIUM=EASY.concat('MM LA BN MN KP KZ IR IQ IL JO QA KW LB AF UZ MV BT TL MA DZ TN LY GH ET TZ UG MG ZW ZM NA BW SN CM SD SO CD BO VE EC UY PY CR PA GT HN DO HT BS HR CZ HU UA IS RO BG RS SK SI LT LV EE BY LU MC VA MT CY FJ PG WS TO'.split(' '));
@@ -523,11 +548,12 @@ function choicesFor(c){
   return shuffle([c,...shuffle(others).slice(0,n-1)]);
 }
 function start(mode){
+  if(mode==='duo'){G.mode='duo';G.duo={score:[0,0],giver:0,seen:new Set(),c:null,used:new Set()};show('game');renderDuo();return}
   G.mode=mode;G.list=pickRound(mode);G.i=0;G.res=[];G.newStamps=[];
   show('game');renderQ();
 }
 function progressDots(){return `<div class="progress" aria-label="Question ${G.i+1} of ${G.list.length}">${G.list.map((c,i)=>`<i class="${G.res[i]===true?'ok':G.res[i]===false?'miss':i===G.i?'now':''}"></i>`).join('')}</div>`}
-function renderQ(){G.wrong=0;G.done=false;({flags:renderFlags,map:renderMap,clues:renderClues,spell:renderSpell,words:renderWords})[G.mode]()}
+function renderQ(){G.wrong=0;G.done=false;({flags:renderFlags,map:renderMap,clues:renderClues,spell:renderSpell,words:renderWords,duo:renderDuo})[G.mode]()}
 
 function win(c){
   G.done=true;G.res[G.i]=true;save.stars++;
@@ -658,6 +684,43 @@ function renderWords(){
   $('wsNew').onclick=()=>{tick();renderWords()};
   $('wsGive').onclick=()=>{placed.forEach((p,k)=>{if(found.has(k))return;G.res[k]=false;$('wch'+k).classList.add('miss');p.cells.forEach(i=>{const e=cellEls[i];if(![...e.classList].some(c=>/^f\d$/.test(c)))e.classList.add('f'+(k%9))})});
     $('fb').innerHTML=`<div class="tools"><button class="next" id="wsDone">Finish</button></div>`;$('wsDone').onclick=finish};
+}
+
+/* ---------- mode: two players (no stamps or stars) ---------- */
+function duoScore(){const D=G.duo;return `<div class="score">${[0,1].map(i=>`<div class="p${i+1}${D.giver!==i?' now':''}"><span>Player ${i+1}${D.giver!==i?' · guessing':' · clues'}</span><b>${D.score[i]}</b></div>`).join('')}</div>`}
+function duoClues(c){const L=norm(c.n).replace(/[^A-Z]/g,'');const words=c.n.split(' ').length;
+  return ['🌍 It is in '+CONT[c.k],c.fact,'🔢 Its name has '+L.length+' letters'+(words>1?' ('+words+' words)':''),'🔤 It starts with the letter '+c.n[0],c.cap&&norm(c.cap).indexOf(norm(c.n))<0?'🏛️ Its capital city is '+c.cap:null].filter(Boolean)}
+function renderDuo(){
+  const D=G.duo;const giver=D.giver+1,guesser=2-D.giver;
+  $('game').innerHTML=duoScore()+`<div class="cover"><div class="eyes">🙈</div><h2>Player ${giver}, it's your turn to give clues!</h2>
+  <p>Player ${guesser}: no peeking! Close your eyes or turn around.</p><button class="next" id="duoShow">I'm Player ${giver}. Show me the secret country</button></div>`;
+  $('duoShow').onclick=()=>{tick();duoPick();duoSecret()};
+}
+function duoPick(){const D=G.duo;let pool=levelPool().filter(c=>!D.seen.has(c.id));if(!pool.length){D.seen.clear();pool=levelPool()}D.c=pool[rnd(pool.length)];D.seen.add(D.c.id);D.used=new Set()}
+function duoSecret(){
+  const D=G.duo,c=D.c;const giver=D.giver+1,guesser=2-D.giver;const cl=duoClues(c);
+  $('game').innerHTML=duoScore()+`<div class="qcard"><div class="secret"><span class="flag">${c.f}</span><div><span class="shh">Secret: only Player ${giver} looks!</span><h2>${esc(c.n)}</h2><p style="margin:6px 0 0;color:var(--soft)">Give Player ${guesser} one clue at a time. Don't say the name!</p></div></div>
+  <div class="clues" style="margin-top:16px">${cl.map((t,i)=>`<button class="dclue" data-i="${i}"><span class="num">${i+1}</span><span>${esc(t)}</span></button>`).join('')}</div>
+  <p style="color:var(--soft);font-size:15px;margin:10px 0 0">Tap a clue after you say it. You can also make up your own clues!</p>
+  <div class="duobtns"><button class="next" id="duoGot">Player ${guesser} got it!</button><button class="btn-no" id="duoGive">Give up</button></div>
+  <div class="tools"><button class="ghost" id="duoHide">Hide the screen</button><button class="ghost" id="duoSkip">Too hard? Pick another country</button></div></div>`;
+  $('game').querySelectorAll('.dclue').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(D.used.has(i))D.used.delete(i);else D.used.add(i);b.classList.toggle('used');tick()});
+  $('duoHide').onclick=()=>{$('game').innerHTML=duoScore()+`<div class="cover"><div class="eyes">🙈</div><h2>Screen hidden</h2><p>Only Player ${giver} should tap below.</p><button class="next" id="duoBack">Show the secret again</button></div>`;$('duoBack').onclick=duoSecret};
+  $('duoSkip').onclick=()=>{tick();duoPick();duoSecret()};
+  $('duoGot').onclick=()=>{D.score[D.giver===0?1:0]++;yay();confetti();duoReveal(true)};
+  $('duoGive').onclick=()=>{oops();duoReveal(false)};
+}
+function duoReveal(ok){
+  const D=G.duo,c=D.c;const guesser=2-D.giver;
+  $('game').innerHTML=duoScore()+`<div class="qcard"><p class="ask">${ok?'Well done, Player '+guesser+'!':'The secret country was…'}</p>
+  <span class="flag bigflag">${c.f}</span><h2 class="fred" style="font-size:clamp(34px,6vw,50px)">${esc(c.n)}</h2>
+  <p style="margin:8px 0 0">${c.cap?'Capital: '+esc(c.cap)+' · ':''}${esc(CONT[c.k])}</p><p style="margin:4px 0 0">${esc(c.fact)}</p>
+  <div class="tools" style="margin-top:18px"><button class="next" id="duoNext">Swap! Next turn →</button><button class="ghost" id="duoEnd">Finish game</button></div></div>`;
+  say((ok?'Well done! ':'It was ')+c.n+'. '+c.fact);
+  $('duoNext').onclick=()=>{tick();D.giver=1-D.giver;renderDuo()};
+  $('duoEnd').onclick=()=>{const [a,b]=D.score;const msg=a===b?"It's a tie!":'Player '+(a>b?1:2)+' wins!';
+    $('game').innerHTML=duoScore()+`<div class="cover"><div class="eyes">🏆</div><h2>${msg}</h2><p>Player 1: ${a} · Player 2: ${b}</p><div class="tools"><button class="next" id="duoAgain">Play again</button><button class="ghost" id="duoHome" style="background:rgba(255,255,255,.2);color:#fff">Choose a game</button></div></div>`;
+    if(a!==b)confetti();say(msg);$('duoAgain').onclick=()=>start('duo');$('duoHome').onclick=()=>show('home')};
 }
 
 /* ---------- mode: map ---------- */
