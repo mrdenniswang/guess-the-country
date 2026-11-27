@@ -24,7 +24,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 Nunito,system-
 h1,h2,h3,.fred{font-family:Fredoka,Nunito,system-ui,sans-serif;line-height:1.05;margin:0}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;touch-action:manipulation}
 button:focus-visible{outline:4px solid var(--sun);outline-offset:3px}
-.fl img{height:.7em;width:auto;aspect-ratio:3/2;vertical-align:-.04em;border-radius:max(2px,.05em);box-shadow:0 0 0 1px rgba(0,0,0,.14);display:inline-block}
+.fl img{height:.7em;width:auto;aspect-ratio:4/3;object-fit:cover;vertical-align:-.04em;border-radius:max(2px,.05em);box-shadow:0 0 0 1px rgba(0,0,0,.14);display:inline-block}
 .bigflag .fl img{height:.8em;margin:.1em 0 .06em}
 .flag{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;line-height:1}
 [hidden]{display:none!important}
@@ -473,19 +473,31 @@ const CONT={AF:'Africa',AS:'Asia',EU:'Europe',NA:'North America',SA:'South Ameri
 const flagOf=c=>String.fromCodePoint(...[...c].map(ch=>0x1F1E6+ch.charCodeAt(0)-65));
 const C=RAW.trim().split('\n').map(l=>{const [id,n,cap,k,fact]=l.split('|');return{id,n,cap,k,fact,get f(){return flagMarkup(id)}}});
 const BY=Object.fromEntries(C.map(c=>[c.id,c]));
-/* flags: drawn as real pictures (SVG) so they work on every device; emoji only as a last resort */
-let FLAGSET=null,FLAGURL=false;const FCACHE={};
+/* flags: detailed flag pictures (flag-icons set), loaded the best way the page allows; emoji only as a last resort */
+let FLAGMODE='emoji',FLAGSET=null;const FCACHE={},FWAIT={};
+const FI_IMG=id=>'https://cdn.jsdelivr.net/npm/flag-icons@7/flags/4x3/'+id.toLowerCase()+'.svg';
+const FI_MOD=id=>['https://cdn.jsdelivr.net/npm/@iconify-icons/flag@1/'+id.toLowerCase()+'-4x3.js','https://cdn.jsdelivr.net/npm/@iconify-icons/flag@1/'+id.toLowerCase()+'-4x3.js/+esm'];
+const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new Error('t')),ms))]);
+const svgURI=svg=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+async function iconFlag(id){for(const u of FI_MOD(id)){try{const m=await withTimeout(import(u),10000);const d=m&&(m.default||m);if(d&&typeof d.body==='string')return svgURI(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${d.left||0} ${d.top||0} ${d.width||640} ${d.height||480}">${d.body}</svg>`)}catch(e){}}return null}
 function flagInner(id){
-  if(FLAGSET&&FLAGSET[id]){if(!FCACHE[id])FCACHE[id]='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(FLAGSET[id]);return `<img alt="" src="${FCACHE[id]}">`}
-  if(FLAGURL)return `<img alt="" src="https://cdn.jsdelivr.net/npm/country-flag-icons@1/3x2/${id}.svg">`;
+  if(FLAGMODE==='img')return `<img alt="" src="${FI_IMG(id)}">`;
+  if(FLAGMODE==='icon'){
+    if(FCACHE[id])return `<img alt="" src="${FCACHE[id]}">`;
+    if(!FWAIT[id])FWAIT[id]=iconFlag(id).then(u=>{if(u){FCACHE[id]=u;document.querySelectorAll(`.fl[data-cc="${id}"]`).forEach(el=>el.innerHTML=flagInner(id))}});
+    return `<img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 3'%3E%3Crect width='4' height='3' fill='%23e9e2cf'/%3E%3C/svg%3E">`;
+  }
+  if(FLAGMODE==='simple'&&FLAGSET&&FLAGSET[id]){if(!FCACHE[id])FCACHE[id]=svgURI(FLAGSET[id]);return `<img alt="" src="${FCACHE[id]}">`}
   return flagOf(id);
 }
 function flagMarkup(id){return `<span class="fl" data-cc="${id}">${flagInner(id)}</span>`}
 function upgradeFlags(){document.querySelectorAll('.fl[data-cc]').forEach(el=>{el.innerHTML=flagInner(el.dataset.cc)});const w=document.getElementById('flagWarn');if(w)w.hidden=true}
-const FLAG_SRC=['https://cdn.jsdelivr.net/npm/country-flag-icons@1/string/3x2/index.js','https://cdn.jsdelivr.net/npm/country-flag-icons@1/string/3x2/+esm','https://unpkg.com/country-flag-icons@1/string/3x2/index.js'];
+const imgOk=src=>new Promise(ok=>{const im=new Image();const t=setTimeout(()=>ok(false),9000);im.onload=()=>{clearTimeout(t);ok(im.naturalWidth>0)};im.onerror=()=>{clearTimeout(t);ok(false)};im.src=src});
 async function loadFlags(){
-  for(const u of FLAG_SRC){try{const m=await Promise.race([import(u),new Promise((_,r)=>setTimeout(()=>r(new Error('t')),12000))]);const o=(m&&typeof m.SG==='string')?m:(m&&m.default);if(o&&typeof o.SG==='string'&&o.SG.indexOf('<svg')>=0){FLAGSET=o;upgradeFlags();return}}catch(e){}}
-  const im=new Image();im.onload=()=>{FLAGURL=true;upgradeFlags()};im.onerror=()=>{if(!flagsWork())document.getElementById('flagWarn').hidden=false};im.src='https://cdn.jsdelivr.net/npm/country-flag-icons@1/3x2/SG.svg';
+  if(await imgOk(FI_IMG('BR'))){FLAGMODE='img';upgradeFlags();return}          // e.g. on GitHub Pages
+  const br=await iconFlag('BR');if(br){FCACHE.BR=br;FLAGMODE='icon';upgradeFlags();return}  // where remote images are blocked
+  for(const u of ['https://cdn.jsdelivr.net/npm/country-flag-icons@1/string/3x2/index.js','https://cdn.jsdelivr.net/npm/country-flag-icons@1/string/3x2/+esm']){try{const m=await withTimeout(import(u),10000);const o=(m&&typeof m.SG==='string')?m:(m&&m.default);if(o&&typeof o.SG==='string'){FLAGSET=o;FLAGMODE='simple';upgradeFlags();return}}catch(e){}}
+  if(!flagsWork())document.getElementById('flagWarn').hidden=false;
 }
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const rnd=n=>Math.floor(Math.random()*n);
