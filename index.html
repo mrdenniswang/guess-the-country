@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guess the Country!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: cheerful explorer's game for a 6-year-old — big, bright, friendly.
+   IDEA: a traveller's passport — every country you guess gets a stamp.
+   PICTURE: the game board itself (flag, map, clue card, balloon basket) fills the screen.
+   COLOUR and TYPE: ocean blue + sunny yellow + coral; Fredoka headings, Nunito body.
+   LAYOUT: top bar, one big play area, huge tap targets; stacks on narrow screens. */
+:root{color-scheme:light dark;
+--bg:light-dark(#fff4d6,#0e2135);--card:light-dark(#ffffff,#16324f);--ink:light-dark(#13283f,#f4f8ff);--soft:light-dark(#5b6b7e,#a9bdd4);
+--ocean:light-dark(#1679c9,#0f5a99);--ocean2:light-dark(#0f5fa3,#0b4678);--sun:#ffc83d;--coral:#ff5a5f;--leaf:#2fb36b;
+--land:light-dark(#ffe6a3,#e9cf86);--landedge:light-dark(#c99a3c,#7a5f22);--sea:light-dark(#8fd0f5,#1d5d8f);--line:light-dark(#e9d9ad,#2a4a6c)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 Nunito,system-ui,sans-serif;overflow-x:clip;-webkit-tap-highlight-color:transparent}
+h1,h2,h3,.fred{font-family:Fredoka,Nunito,system-ui,sans-serif;line-height:1.05;margin:0}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;touch-action:manipulation}
+button:focus-visible{outline:4px solid var(--sun);outline-offset:3px}
+.fl img{height:.7em;width:auto;aspect-ratio:3/2;vertical-align:-.04em;border-radius:max(2px,.05em);box-shadow:0 0 0 1px rgba(0,0,0,.14);display:inline-block}
+.bigflag .fl img{height:.8em;margin:.1em 0 .06em}
+.flag{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;line-height:1}
+[hidden]{display:none!important}
+
+/* top bar */
+.bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:10px max(3vw,12px);background:var(--ocean);color:#fff}
+.bar .brand{font-family:Fredoka,sans-serif;font-weight:700;font-size:22px;margin-right:auto;display:flex;align-items:center;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.16);font-weight:800;font-size:18px;color:#fff}
+.pill svg{width:24px;height:24px}
+.iconbtn{width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,.16);display:grid;place-items:center;color:#fff}
+.iconbtn svg{width:26px;height:26px}
+
+/* home */
+.hero{background:var(--ocean);color:#fff;padding:8px max(5vw,16px) 0;overflow:hidden}
+.heroin{max-width:1100px;margin:auto;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:center}
+.hero h1{font-size:clamp(40px,7vw,68px);font-weight:700;text-wrap:balance}
+.hero h1 span{color:var(--sun)}
+.hero p{font-size:19px;margin:12px 0 18px;max-width:30em;opacity:.95}
+.globe{width:100%;max-height:300px;display:block}
+.plane{transform-origin:150px 150px;animation:orbit 14s linear infinite}
+@keyframes orbit{to{transform:rotate(360deg)}}
+.seg{display:inline-flex;background:rgba(0,0,0,.18);border-radius:999px;padding:4px;margin-bottom:22px}
+.seg button{min-height:48px;padding:0 22px;border-radius:999px;font-weight:800;font-size:18px;color:#fff}
+.seg button[aria-pressed=true]{background:var(--sun);color:#13283f}
+.wave{display:block;width:100%;height:36px;color:var(--bg)}
+.modes{max-width:1100px;margin:0 auto;padding:10px max(5vw,16px) 40px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.mode{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:center;gap:16px;text-align:left;padding:18px;border-radius:26px;background:var(--card);box-shadow:0 6px 0 var(--line),0 10px 24px rgba(19,40,63,.10);min-height:130px;transition:transform .12s}
+.mode:active{transform:translateY(3px);box-shadow:0 3px 0 var(--line)}
+.mode svg{width:96px;height:96px}
+.mode h2{font-size:28px;font-weight:600}
+.mode p{margin:6px 0 0;color:var(--soft);font-size:16px}
+.mode[disabled]{opacity:.55;cursor:default}
+.note{max-width:1100px;margin:0 auto 24px;padding:0 max(5vw,16px);color:var(--soft);font-size:14px}
+.warn{background:#fff0c2;color:#5a4300;border-radius:14px;padding:10px 14px;margin:0 auto 14px;max-width:1100px}
+
+/* game */
+.game{max-width:900px;margin:0 auto;padding:18px max(4vw,14px) 40px}
+.progress{display:flex;gap:6px;justify-content:center;margin-bottom:14px;flex-wrap:wrap}
+.progress i{width:16px;height:16px;border-radius:50%;background:var(--line)}
+.progress i.ok{background:var(--leaf)}.progress i.miss{background:var(--coral)}.progress i.now{background:var(--sun);transform:scale(1.25)}
+.qcard{background:var(--card);border-radius:28px;padding:22px;text-align:center;box-shadow:0 6px 0 var(--line)}
+.bigflag{font-size:clamp(120px,26vw,200px);display:block;margin:-6px 0 4px}
+.ask{font-family:Fredoka,sans-serif;font-weight:600;font-size:clamp(24px,4vw,32px);margin:6px 0 0}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}
+.opt{min-height:72px;padding:12px 16px;border-radius:20px;background:var(--card);box-shadow:0 5px 0 var(--line);font-weight:800;font-size:clamp(19px,3vw,23px);display:flex;align-items:center;justify-content:center;gap:10px;text-align:center}
+.opt .flag{font-size:34px}
+.opt:active{transform:translateY(2px)}
+.opt.no{background:var(--coral);color:#fff;box-shadow:none;opacity:.55;animation:shake .4s}
+.opt.ok{background:var(--leaf);color:#fff;box-shadow:0 5px 0 #1d7f4a}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.feedback{margin-top:18px;background:var(--card);border-radius:24px;padding:18px 20px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;box-shadow:0 6px 0 var(--line)}
+.feedback .flag{font-size:64px}
+.feedback h3{font-size:28px;font-weight:600}
+.feedback p{margin:4px 0 0;color:var(--soft)}
+.next{min-height:64px;padding:0 28px;border-radius:20px;background:var(--sun);color:#13283f;font-family:Fredoka,sans-serif;font-weight:600;font-size:24px;box-shadow:0 5px 0 #c9951a}
+.ghost{min-height:48px;padding:0 18px;border-radius:14px;background:var(--line);font-weight:800}
+.clues{display:grid;gap:10px;text-align:left;margin-top:8px}
+.clue{background:var(--bg);border-radius:18px;padding:14px 16px;font-size:clamp(19px,3vw,23px);font-weight:700;animation:pop .35s}
+.clue .flag{font-size:44px;vertical-align:middle}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+.tools{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+
+/* map */
+.mapwrap{position:relative;height:min(62vh,560px);min-height:320px;border-radius:24px;overflow:hidden;background:var(--sea);margin-top:14px;box-shadow:0 6px 0 var(--line)}
+#map{position:absolute;inset:0;width:100%;height:100%;touch-action:manipulation}
+#map path{fill:var(--land);stroke:var(--landedge);stroke-width:.8px;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+#map path.other{fill:light-dark(#efe3c4,#b9a774)}
+#map .dot{fill:var(--land);stroke:var(--landedge);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+#map .wrong{fill:var(--coral)!important}
+#map .right{fill:var(--leaf)!important}
+#map .hint{fill:var(--sun)!important;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.35}}
+.toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(19,40,63,.88);color:#fff;padding:8px 16px;border-radius:999px;font-weight:800;font-size:19px;white-space:nowrap;pointer-events:none}
+.mapbtns{position:absolute;right:10px;bottom:10px;display:flex;gap:8px}
+.mapbtns button{min-height:48px;padding:0 14px;border-radius:14px;background:var(--card);font-weight:800;box-shadow:0 3px 0 var(--line)}
+.maploading{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:20px;text-align:center;padding:20px}
+
+/* hangman */
+.spell{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:18px;align-items:center}
+.balloons{width:100%;max-height:300px}
+.balloons .b{transition:transform .35s,opacity .35s;transform-box:fill-box;transform-origin:center}
+.balloons .b.popped{transform:scale(1.6);opacity:0}
+.basket{transition:transform 1s}
+.landed .basket{transform:translateY(30px)}
+.word{display:flex;flex-wrap:wrap;gap:14px 22px;justify-content:center;margin:6px 0 14px}
+.w{display:flex;gap:5px}
+.ch{width:clamp(28px,5vw,40px);height:clamp(40px,7vw,52px);border-bottom:4px solid var(--ink);display:grid;place-items:center;font-family:Fredoka,sans-serif;font-weight:700;font-size:clamp(24px,4vw,34px)}
+.ch.sym{border-color:transparent}
+.ch.miss{color:var(--coral)}
+.keys{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+.key{width:clamp(44px,8vw,54px);height:clamp(48px,8vw,56px);border-radius:12px;background:var(--card);box-shadow:0 4px 0 var(--line);font-family:Fredoka,sans-serif;font-weight:700;font-size:24px}
+.key.hit{background:var(--leaf);color:#fff;box-shadow:none}
+.key.bad{background:var(--line);color:var(--soft);box-shadow:none}
+
+/* done + passport */
+.done{text-align:center}
+.done h2{font-size:clamp(36px,6vw,54px);font-weight:700}
+.stars{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:16px 0}
+.stars svg{width:44px;height:44px;animation:pop .4s backwards}
+.newst{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:10px 0 22px}
+.passport{max-width:1100px;margin:0 auto;padding:18px max(4vw,14px) 40px}
+.pphead{display:flex;flex-wrap:wrap;align-items:end;gap:12px 20px;margin-bottom:10px}
+.pphead h2{font-size:clamp(32px,5vw,46px);font-weight:700;margin-right:auto}
+.meter{height:18px;border-radius:999px;background:var(--line);overflow:hidden;margin:6px 0 18px}
+.meter b{display:block;height:100%;background:var(--leaf);border-radius:999px}
+.cont h3{font-size:24px;font-weight:600;margin:22px 0 10px}
+.cont h3 small{font-family:Nunito,sans-serif;font-size:16px;color:var(--soft);font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+.stamp{min-height:112px;border-radius:18px;border:3px dashed var(--line);display:grid;place-items:center;align-content:center;gap:4px;padding:8px;text-align:center;font-size:14px;font-weight:800;color:var(--soft)}
+.stamp .q{width:52px;height:52px;border-radius:50%;background:var(--line);display:grid;place-items:center;font-family:Fredoka,sans-serif;font-size:28px;color:var(--soft)}
+.stamp.got{border:3px solid var(--coral);color:var(--ink);background:var(--card);transform:rotate(var(--r,-3deg))}
+.stamp.got .flag{font-size:48px}
+.detail{background:var(--card);border-radius:24px;padding:18px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;box-shadow:0 6px 0 var(--line);margin-bottom:8px}
+.detail .flag{font-size:80px}
+.detail h3{font-size:30px;font-weight:600}
+.detail p{margin:4px 0 0}
+.confirm{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:24px}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:20;overflow:hidden}
+.confetti i{position:absolute;top:-20px;width:12px;height:18px;border-radius:3px;animation:fall 1.4s ease-in forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(720deg)}}
+
+@media(max-width:760px){.heroin{grid-template-columns:1fr}.globe{max-height:200px;order:-1}.modes{grid-template-columns:1fr}.spell{grid-template-columns:1fr}.balloons{max-height:200px}}
+@media(max-width:520px){.opts{grid-template-columns:1fr}.feedback,.detail{grid-template-columns:auto minmax(0,1fr)}.feedback .next,.detail .ghost{grid-column:1/-1}.bar .brand span{display:none}.mode{grid-template-columns:72px minmax(0,1fr)}.mode svg{width:72px;height:72px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="star" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.5L12 17.2 6.1 20.4l1.3-6.5L2.5 9.3l6.6-.8z" fill="#ffc83d" stroke="#d99a12" stroke-width="1.2" stroke-linejoin="round"/></symbol>
+</svg>
+
+<header class="bar">
+  <div class="brand"><svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="#8fd0f5"/><path d="M9 14c4-3 8 1 6 5s3 5 1 9-7-1-8-5 1-5 1-9zM22 7c5 0 9 4 11 9-3 1-5-2-8 0s-1 7-4 7-3-5-2-8 0-6 3-8z" fill="#ffe6a3"/><circle cx="20" cy="20" r="17" fill="none" stroke="#fff" stroke-width="3"/></svg><span>Guess the Country</span></div>
+  <button class="iconbtn" id="homeBtn" aria-label="Home" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></button>
+  <button class="pill" id="ppBtn" aria-label="Open passport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="2.5" width="16" height="19" rx="2.5"/><circle cx="12" cy="11" r="4"/><path d="M8 17.5h8"/></svg><span id="stampCount">0</span></button>
+  <div class="pill" aria-label="Stars"><svg><use href="#star"/></svg><span id="starCount">0</span></div>
+  <button class="iconbtn" id="soundBtn" aria-label="Sound on or off"></button>
+</header>
+
+<main>
+<!-- HOME -->
+<section id="home">
+  <div class="hero">
+    <div class="heroin">
+      <div>
+        <h1>Guess the <span>Country!</span></h1>
+        <p>Pick a game. Every country you guess gets a stamp in your passport. Can you collect all 195?</p>
+        <div class="seg" role="group" aria-label="Difficulty">
+          <button id="dEasy" aria-pressed="true">Easy</button>
+          <button id="dTricky" aria-pressed="false">Tricky</button>
+        </div>
+      </div>
+      <svg class="globe" viewBox="0 0 300 300" aria-hidden="true">
+        <circle cx="150" cy="150" r="128" fill="#0f5fa3" opacity=".35"/>
+        <circle cx="150" cy="150" r="104" fill="#8fd0f5"/>
+        <path d="M150 46a104 104 0 0 1 104 104h-208A104 104 0 0 1 150 46z" fill="#fff" opacity=".18"/>
+        <path d="M86 92c18-14 40-8 44 6s-10 18-6 32 22 16 12 34-30 6-40-8-26-12-26-30 4-22 16-34zM160 70c20-6 44 4 56 20 8 12-6 22-18 20s-18 8-14 20 18 14 16 28-18 24-30 16-6-26-18-34-20-14-14-34 6-30 22-36zM196 200c12-4 26 2 28 12s-10 20-22 18-16-26-6-30z" fill="#ffe6a3" stroke="#c99a3c" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="150" cy="150" r="104" fill="none" stroke="#fff" stroke-width="5"/>
+        <g class="plane"><g transform="translate(150 22)"><path d="M-20 0l40-8 4 4-14 6 14 6-4 4-40-8z" fill="#ff5a5f" stroke="#fff" stroke-width="2"/><path d="M-6 -2l-8-14h6l12 13zM-6 2l-8 14h6l12-13z" fill="#ffc83d" stroke="#fff" stroke-width="1.5"/></g></g>
+        <g fill="#ffc83d"><circle cx="40" cy="60" r="4"/><circle cx="268" cy="240" r="5"/><circle cx="262" cy="70" r="3"/><circle cx="34" cy="232" r="3"/></g>
+      </svg>
+    </div>
+    <svg class="wave" viewBox="0 0 1200 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 36V18C150 0 300 0 450 14s300 22 450 6 225-14 300-6v22z" fill="currentColor"/></svg>
+  </div>
+  <div id="flagWarn" class="warn" hidden>The flag pictures could not load. Check the internet connection and reload the page.</div>
+  <div class="modes">
+    <button class="mode" data-mode="flags">
+      <svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#ffe1e1"/><rect x="24" y="16" width="6" height="66" rx="3" fill="#7a5a3a"/><path d="M30 20c12-6 22 6 36 0v30c-14 6-24-6-36 0z" fill="#ff5a5f"/><path d="M30 35c12-6 22 6 36 0v15c-14 6-24-6-36 0z" fill="#fff"/><circle cx="27" cy="16" r="5" fill="#ffc83d"/></svg>
+      <div><h2>Flags</h2><p>Look at the flag. Which country is it?</p></div>
+    </button>
+    <button class="mode" data-mode="map" id="mapMode">
+      <svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#d7efff"/><path d="M16 28l20-8 24 8 20-8v48l-20 8-24-8-20 8z" fill="#ffe6a3" stroke="#c99a3c" stroke-width="3" stroke-linejoin="round"/><path d="M36 20v48M60 28v48" stroke="#c99a3c" stroke-width="3"/><path d="M48 62s-12-12-12-21a12 12 0 0 1 24 0c0 9-12 21-12 21z" fill="#ff5a5f"/><circle cx="48" cy="41" r="5" fill="#fff"/></svg>
+      <div><h2>Map</h2><p id="mapNote">Find the country on the world map.</p></div>
+    </button>
+    <button class="mode" data-mode="clues">
+      <svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#fff1c7"/><circle cx="42" cy="42" r="20" fill="#8fd0f5" stroke="#13283f" stroke-width="6"/><path d="M34 36a10 10 0 0 1 10-6" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M57 57l17 17" stroke="#13283f" stroke-width="9" stroke-linecap="round"/></svg>
+      <div><h2>Picture Clues</h2><p>Read the clues. A new clue appears if you get it wrong.</p></div>
+    </button>
+    <button class="mode" data-mode="spell">
+      <svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#e2f6e9"/><path d="M30 46l14 26M48 44v28M66 46L52 72" stroke="#7a8a9a" stroke-width="2"/><ellipse cx="30" cy="32" rx="12" ry="15" fill="#ff5a5f"/><ellipse cx="48" cy="26" rx="12" ry="15" fill="#ffc83d"/><ellipse cx="66" cy="32" rx="12" ry="15" fill="#1679c9"/><path d="M38 70h20l-3 12H41z" fill="#a0703f"/></svg>
+      <div><h2>Spell It</h2><p>Guess the letters before all the balloons pop!</p></div>
+    </button>
+  </div>
+  <p class="note">Stars and stamps are saved on this tablet. The Map game needs an internet connection to load the map.</p>
+  <div class="note"><div class="confirm" id="homeReset" style="margin-top:0"></div></div>
+</section>
+
+<!-- GAME -->
+<section id="game" class="game" hidden></section>
+
+<!-- DONE -->
+<section id="done" class="game done" hidden></section>
+
+<!-- PASSPORT -->
+<section id="passport" class="passport" hidden></section>
+</main>
+<div class="confetti" id="confetti" aria-hidden="true"></div>
+
+<script>
+{
+/* ---------- country data: code|name|capital|continent|fun clue ---------- */
+const RAW=`DZ|Algeria|Algiers|AF|🏜️ Africa's biggest country, mostly Sahara desert
+AO|Angola|Luanda|AF|🦌 Home of the rare giant sable antelope
+BJ|Benin|Porto-Novo|AF|⚔️ Long ago it had a famous army of women warriors
+BW|Botswana|Gaborone|AF|🐘 More elephants live here than anywhere else
+BF|Burkina Faso|Ouagadougou|AF|🎬 Holds Africa's biggest film festival
+BI|Burundi|Gitega|AF|🥁 Famous for its royal drummers
+CV|Cape Verde|Praia|AF|🌋 Ten volcanic islands in the Atlantic Ocean
+CM|Cameroon|Yaoundé|AF|⚽ Its football team is called the Indomitable Lions
+CF|Central African Republic|Bangui|AF|🦍 Gorillas and forest elephants live in its jungles
+TD|Chad|N'Djamena|AF|🏞️ Has a big lake with the same name as the country
+KM|Comoros|Moroni|AF|🌸 Islands that grow flowers for perfume
+CG|Congo|Brazzaville|AF|🏙️ Its capital is right across the river from another country's capital
+CD|DR Congo|Kinshasa|AF|🌊 The mighty Congo River, one of the deepest rivers, flows here
+CI|Ivory Coast|Yamoussoukro|AF|🍫 Grows more cocoa for chocolate than any other country
+DJ|Djibouti|Djibouti|AF|🧂 Has a super salty lake called Lake Assal
+EG|Egypt|Cairo|AF|🔺 Home of the pyramids and the Sphinx
+GQ|Equatorial Guinea|Malabo|AF|🏝️ Its capital city is on an island
+ER|Eritrea|Asmara|AF|🚲 Its capital is full of bicycles and colourful old buildings
+SZ|Eswatini|Mbabane|AF|👑 One of the last countries ruled by a king
+ET|Ethiopia|Addis Ababa|AF|☕ Coffee was first discovered here
+GA|Gabon|Libreville|AF|🐒 Most of it is covered in rainforest
+GM|Gambia|Banjul|AF|🐊 The smallest country on mainland Africa, along a river
+GH|Ghana|Accra|AF|🧵 Famous for cocoa and colourful kente cloth
+GN|Guinea|Conakry|AF|💧 Many big West African rivers start here
+GW|Guinea-Bissau|Bissau|AF|🐢 Has islands where sea turtles lay eggs
+KE|Kenya|Nairobi|AF|🦁 Famous for safaris and super fast runners
+LS|Lesotho|Maseru|AF|⛰️ A mountain kingdom completely surrounded by South Africa
+LR|Liberia|Monrovia|AF|🗽 Founded by freed people from America
+LY|Libya|Tripoli|AF|🏜️ Mostly desert, next to the Mediterranean Sea
+MG|Madagascar|Antananarivo|AF|🐒 Lemurs live only on this big island
+MW|Malawi|Lilongwe|AF|🐟 Its huge lake has hundreds of colourful fish
+ML|Mali|Bamako|AF|🕌 Has a giant mosque made of mud
+MR|Mauritania|Nouakchott|AF|👁️ The giant "Eye of the Sahara" is here
+MU|Mauritius|Port Louis|AF|🦤 The dodo bird used to live here
+MA|Morocco|Rabat|AF|🐫 Has the Atlas Mountains and busy markets called souks
+MZ|Mozambique|Maputo|AF|🐠 A long Indian Ocean coast with coral reefs
+NA|Namibia|Windhoek|AF|🏜️ Has giant red sand dunes
+NE|Niger|Niamey|AF|🦒 West African giraffes live here
+NG|Nigeria|Abuja|AF|👨‍👩‍👧 More people live here than in any other African country
+RW|Rwanda|Kigali|AF|🦍 Mountain gorillas live in its misty hills
+ST|Sao Tome and Principe|São Tomé|AF|🍫 Two small chocolate islands on the equator
+SN|Senegal|Dakar|AF|🌅 Its capital is the most western city in Africa
+SC|Seychelles|Victoria|AF|🐢 Giant tortoises live on its islands
+SL|Sierra Leone|Freetown|AF|🦁 Its name means "Lion Mountains"
+SO|Somalia|Mogadishu|AF|🐪 Has more camels than any other country
+ZA|South Africa|Pretoria|AF|🐧 Penguins live on some of its beaches
+SS|South Sudan|Juba|AF|🎂 The world's newest country, born in 2011
+SD|Sudan|Khartoum|AF|🔺 Has even more pyramids than Egypt
+TZ|Tanzania|Dodoma|AF|🏔️ Mount Kilimanjaro, Africa's tallest mountain
+TG|Togo|Lomé|AF|🏠 Famous for tall mud tower houses
+TN|Tunisia|Tunis|AF|🏛️ The ruins of ancient Carthage are here
+UG|Uganda|Kampala|AF|🌊 The River Nile starts its long journey here
+ZM|Zambia|Lusaka|AF|💦 Shares the giant Victoria Falls waterfall
+ZW|Zimbabwe|Harare|AF|🏰 Has ancient stone ruins called Great Zimbabwe
+AF|Afghanistan|Kabul|AS|🪁 Kite flying is a favourite sport
+AM|Armenia|Yerevan|AS|⛰️ You can see Mount Ararat from its capital
+AZ|Azerbaijan|Baku|AS|🔥 The "Land of Fire": flames come out of a hillside
+BH|Bahrain|Manama|AS|🦪 An island country famous for pearls
+BD|Bangladesh|Dhaka|AS|🐅 Bengal tigers live in its mangrove forests
+BT|Bhutan|Thimphu|AS|😊 It measures how happy its people are
+BN|Brunei|Bandar Seri Begawan|AS|🛶 Has a whole village built on stilts over water
+KH|Cambodia|Phnom Penh|AS|🛕 The temple Angkor Wat is on its flag
+CN|China|Beijing|AS|🐼 Giant pandas and the Great Wall
+GE|Georgia|Tbilisi|AS|🏔️ Shares its name with a US state
+IN|India|New Delhi|AS|🕌 The Taj Mahal is here
+ID|Indonesia|Jakarta|AS|🦎 Komodo dragons live here
+IR|Iran|Tehran|AS|🧶 Famous for beautiful Persian carpets
+IQ|Iraq|Baghdad|AS|📜 Some of the first writing ever was invented here
+IL|Israel||AS|🌊 You can float easily in the very salty Dead Sea
+JP|Japan|Tokyo|AS|🗻 Mount Fuji and super fast bullet trains
+JO|Jordan|Amman|AS|🏜️ The pink-red city of Petra is carved into rock here
+KZ|Kazakhstan|Astana|AS|🚀 Rockets to space launch from here
+KW|Kuwait|Kuwait City|AS|🗼 Famous for its blue-dotted Kuwait Towers
+KG|Kyrgyzstan|Bishkek|AS|⛺ Many people live in round tents called yurts
+LA|Laos|Vientiane|AS|🐘 Once called the "Land of a Million Elephants"
+LB|Lebanon|Beirut|AS|🌲 A cedar tree is on its flag
+MY|Malaysia|Kuala Lumpur|AS|🏙️ Has the Petronas Twin Towers
+MV|Maldives|Malé|AS|🏝️ Over 1,000 tiny coral islands
+MN|Mongolia|Ulaanbaatar|AS|🐎 Has more horses than people
+MM|Myanmar|Naypyidaw|AS|🛕 Thousands of old temples at Bagan
+NP|Nepal|Kathmandu|AS|🏔️ Mount Everest is here, and its flag isn't a rectangle
+KP|North Korea|Pyongyang|AS|🏟️ Has one of the biggest stadiums in the world
+OM|Oman|Muscat|AS|🐢 Sea turtles nest on its beaches
+PK|Pakistan|Islamabad|AS|🏔️ K2, the second-highest mountain in the world
+PS|Palestine||AS|🫒 Famous for its olive trees
+PH|Philippines|Manila|AS|🏝️ More than 7,000 islands
+QA|Qatar|Doha|AS|⚽ Hosted the 2022 football World Cup
+SA|Saudi Arabia|Riyadh|AS|🐪 Has a huge sandy desert called the Empty Quarter
+SG|Singapore|Singapore|AS|🦁 The Merlion lives here: half lion, half fish!
+KR|South Korea|Seoul|AS|🥬 Kimchi and K-pop come from here
+LK|Sri Lanka|Sri Jayawardenepura Kotte|AS|🍵 A teardrop-shaped island famous for tea
+SY|Syria|Damascus|AS|🏛️ Its capital is one of the oldest cities in the world
+TJ|Tajikistan|Dushanbe|AS|⛰️ Almost the whole country is mountains
+TH|Thailand|Bangkok|AS|🐘 Elephants and golden temples
+TL|Timor-Leste|Dili|AS|🌅 Shares an island with Indonesia
+TR|Turkey|Ankara|AS|🎈 Hot-air balloons float over rocky "fairy chimneys"
+TM|Turkmenistan|Ashgabat|AS|🔥 Has a crater that has been burning for 50 years
+AE|United Arab Emirates|Abu Dhabi|AS|🏙️ Has the tallest building in the world
+UZ|Uzbekistan|Tashkent|AS|🕌 Blue-tiled cities on the old Silk Road
+VN|Vietnam|Hanoi|AS|⛵ Ha Long Bay has thousands of rocky islands
+YE|Yemen|Sana'a|AS|🏙️ Has old mud-brick "skyscrapers"
+AL|Albania|Tirana|EU|🦅 A two-headed eagle is on its flag
+AD|Andorra|Andorra la Vella|EU|⛷️ A tiny mountain country between France and Spain
+AT|Austria|Vienna|EU|🎻 The composer Mozart was born here
+BY|Belarus|Minsk|EU|🦬 European bison live in its ancient forest
+BE|Belgium|Brussels|EU|🧇 Famous for waffles, chocolate and fries
+BA|Bosnia and Herzegovina|Sarajevo|EU|🌉 Has a famous old stone bridge at Mostar
+BG|Bulgaria|Sofia|EU|🌹 Grows roses to make perfume
+HR|Croatia|Zagreb|EU|🐕 Dalmatian dogs are named after a part of it
+CY|Cyprus|Nicosia|EU|🗺️ The shape of the island is on its flag
+CZ|Czechia|Prague|EU|🏰 Its capital has one of the biggest castles in the world
+DK|Denmark|Copenhagen|EU|🧱 LEGO bricks were invented here
+EE|Estonia|Tallinn|EU|💻 Lots of things are done online here, even voting
+FI|Finland|Helsinki|EU|🎅 Santa's village is in Lapland, up north
+FR|France|Paris|EU|🗼 The Eiffel Tower and croissants
+DE|Germany|Berlin|EU|🥨 Fairy-tale castles and pretzels
+GR|Greece|Athens|EU|🏛️ The first Olympic Games were held here
+HU|Hungary|Budapest|EU|🧩 The Rubik's Cube was invented here
+IS|Iceland|Reykjavík|EU|🌋 Volcanoes, glaciers and spouting geysers
+IE|Ireland|Dublin|EU|☘️ The green shamrock is its symbol
+IT|Italy|Rome|EU|🍕 Pizza! And the country is shaped like a boot
+LV|Latvia|Riga|EU|🎄 Says it had one of the first decorated Christmas trees
+LI|Liechtenstein|Vaduz|EU|🦷 A tiny country that makes lots of false teeth
+LT|Lithuania|Vilnius|EU|🏀 Basketball is its favourite sport
+LU|Luxembourg|Luxembourg|EU|🏰 A small country ruled by a Grand Duke
+MT|Malta|Valletta|EU|🏝️ Small islands with stone temples older than the pyramids
+MD|Moldova|Chișinău|EU|🍇 Has giant underground cellars, like a city of tunnels
+MC|Monaco|Monaco|EU|🏎️ Racing cars zoom through its streets
+ME|Montenegro|Podgorica|EU|⛰️ Its name means "Black Mountain"
+NL|Netherlands|Amsterdam|EU|🌷 Tulips, windmills and lots of bikes
+MK|North Macedonia|Skopje|EU|☀️ A bright yellow sun is on its flag
+NO|Norway|Oslo|EU|🐋 Deep fjords and the Northern Lights
+PL|Poland|Warsaw|EU|🥟 Famous for dumplings called pierogi
+PT|Portugal|Lisbon|EU|🚋 Yellow trams climb the hills of its capital
+RO|Romania|Bucharest|EU|🧛 Legends say Dracula's castle is here
+RU|Russia|Moscow|EU|🪆 The biggest country in the world, home of nesting dolls
+SM|San Marino|San Marino|EU|⛰️ A tiny country on a mountain, surrounded by Italy
+RS|Serbia|Belgrade|EU|🌊 Its capital sits where two big rivers meet
+SK|Slovakia|Bratislava|EU|🏰 Has lots of castles for its size
+SI|Slovenia|Ljubljana|EU|🐉 A dragon is the symbol of its capital
+ES|Spain|Madrid|EU|💃 Flamenco dancing and paella
+SE|Sweden|Stockholm|EU|🫎 Moose, and a hotel made of ice
+CH|Switzerland|Bern|EU|🧀 Holey cheese, chocolate and the Alps
+UA|Ukraine|Kyiv|EU|🌻 Huge fields of sunflowers
+GB|United Kingdom|London|EU|💂 Big Ben and red double-decker buses
+VA|Vatican City|Vatican City|EU|⛪ The smallest country in the world
+AG|Antigua and Barbuda|Saint John's|NA|🏖️ Says it has 365 beaches, one for every day
+BS|Bahamas|Nassau|NA|🐷 Has pigs that swim in the sea!
+BB|Barbados|Bridgetown|NA|🐒 Green monkeys live here
+BZ|Belize|Belmopan|NA|🐠 Has a giant round underwater sinkhole called the Great Blue Hole
+CA|Canada|Ottawa|NA|🍁 A maple leaf on its flag, and maple syrup
+CR|Costa Rica|San José|NA|🦥 Sloths hang in its rainforests
+CU|Cuba|Havana|NA|🚗 Colourful old cars drive in its streets
+DM|Dominica|Roseau|NA|🦜 A parrot is on its flag
+DO|Dominican Republic|Santo Domingo|NA|⚾ Baseball is hugely popular here
+SV|El Salvador|San Salvador|NA|🌋 Called the "Land of Volcanoes"
+GD|Grenada|Saint George's|NA|🌰 The "Spice Isle": a nutmeg is on its flag
+GT|Guatemala|Guatemala City|NA|🐦 The colourful quetzal bird is on its flag
+HT|Haiti|Port-au-Prince|NA|🏰 Has a giant fortress on a mountain top
+HN|Honduras|Tegucigalpa|NA|🛕 Has the ancient Maya city of Copán
+JM|Jamaica|Kingston|NA|🏃 Super fast sprinters and reggae music
+MX|Mexico|Mexico City|NA|🌮 Tacos and ancient pyramids
+NI|Nicaragua|Managua|NA|🌋 Lots of lakes and volcanoes
+PA|Panama|Panama City|NA|🚢 Ships go from one ocean to another through its canal
+KN|Saint Kitts and Nevis|Basseterre|NA|🐒 Has more monkeys than people!
+LC|Saint Lucia|Castries|NA|⛰️ Has two pointy mountains called the Pitons
+VC|Saint Vincent and the Grenadines|Kingstown|NA|⛵ Lots of tiny islands for sailing
+TT|Trinidad and Tobago|Port of Spain|NA|🥁 The steelpan drum was invented here
+US|United States|Washington, D.C.|NA|🗽 The Statue of Liberty and 50 states
+AR|Argentina|Buenos Aires|SA|💃 Tango dancing and huge waterfalls
+BO|Bolivia|Sucre|SA|🪞 The biggest salt flat in the world, like a giant mirror
+BR|Brazil|Brasília|SA|🦜 The Amazon rainforest and lots of football
+CL|Chile|Santiago|SA|🗿 Giant stone heads on Easter Island
+CO|Colombia|Bogotá|SA|☕ Famous coffee and a river of five colours
+EC|Ecuador|Quito|SA|🐢 Galápagos giant tortoises; named after the equator
+GY|Guyana|Georgetown|SA|💦 Has a giant waterfall called Kaieteur
+PY|Paraguay|Asunción|SA|💡 Shares a giant dam that makes lots of electricity
+PE|Peru|Lima|SA|🦙 Llamas and the mountain city of Machu Picchu
+SR|Suriname|Paramaribo|SA|🌳 Mostly rainforest, and people speak Dutch
+UY|Uruguay|Montevideo|SA|⚽ Won the very first football World Cup
+VE|Venezuela|Caracas|SA|💧 Angel Falls, the tallest waterfall in the world
+AU|Australia|Canberra|OC|🦘 Kangaroos and koalas
+FJ|Fiji|Suva|OC|🏝️ More than 300 islands in the Pacific
+KI|Kiribati|Tarawa|OC|🌅 One of the first places in the world to start each new day
+MH|Marshall Islands|Majuro|OC|🦈 Has a giant safe area for sharks
+FM|Micronesia|Palikir|OC|🪙 Has giant stone money on Yap island
+NR|Nauru|Yaren|OC|🏝️ The smallest island country in the world
+NZ|New Zealand|Wellington|OC|🥝 Kiwi birds and green rolling hills
+PW|Palau|Ngerulmud|OC|🪼 Has a lake full of jellyfish
+PG|Papua New Guinea|Port Moresby|OC|🗣️ More than 800 languages are spoken here
+WS|Samoa|Apia|OC|🏉 Rugby is super popular
+SB|Solomon Islands|Honiara|OC|🐊 Saltwater crocodiles and coral lagoons
+TO|Tonga|Nuku'alofa|OC|👑 A Pacific island kingdom with a king
+TV|Tuvalu|Funafuti|OC|🏝️ Tiny coral islands, and its website name is ".tv"
+VU|Vanuatu|Port Vila|OC|📮 Has a post office under the sea!`;
+
+const CONT={AF:'Africa',AS:'Asia',EU:'Europe',NA:'North America',SA:'South America',OC:'Oceania'};
+const flagOf=c=>String.fromCodePoint(...[...c].map(ch=>0x1F1E6+ch.charCodeAt(0)-65));
+const C=RAW.trim().split('\n').map(l=>{const [id,n,cap,k,fact]=l.split('|');return{id,n,cap,k,fact,get f(){return flagMarkup(id)}}});
+const BY=Object.fromEntries(C.map(c=>[c.id,c]));
+/* flags: drawn as real pictures (SVG) so they work on every device; emoji only as a last resort */
+let FLAGSET=null,FLAGURL=false;const FCACHE={};
+function flagInner(id){
+  if(FLAGSET&&FLAGSET[id]){if(!FCACHE[id])FCACHE[id]='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(FLAGSET[id]);return `<img alt="" src="${FCACHE[id]}">`}
+  if(FLAGURL)return `<img alt="" src="https://cdn.jsdelivr.net/npm/country-flag-icons@1/3x2/${id}.svg">`;
+  return flagOf(id);
+}
+function flagMarkup(id){return `<span class="fl" data-cc="${id}">${flagInner(id)}</span>`}
+function upgradeFlags(){document.querySelectorAll('.fl[data-cc]').forEach(el=>{el.innerHTML=flagInner(el.dataset.cc)});const w=document.getElementById('flagWarn');if(w)w.hidden=true}
+const FLAG_SRC=['https://cdn.jsdelivr.net/npm/country-flag-icons@1/string/3x2/index.js','https://cdn.jsdelivr.net/npm/country-flag-icons@1/string/3x2/+esm','https://unpkg.com/country-flag-icons@1/string/3x2/index.js'];
+async function loadFlags(){
+  for(const u of FLAG_SRC){try{const m=await Promise.race([import(u),new Promise((_,r)=>setTimeout(()=>r(new Error('t')),12000))]);const o=(m&&typeof m.SG==='string')?m:(m&&m.default);if(o&&typeof o.SG==='string'&&o.SG.indexOf('<svg')>=0){FLAGSET=o;upgradeFlags();return}}catch(e){}}
+  const im=new Image();im.onload=()=>{FLAGURL=true;upgradeFlags()};im.onerror=()=>{if(!flagsWork())document.getElementById('flagWarn').hidden=false};im.src='https://cdn.jsdelivr.net/npm/country-flag-icons@1/3x2/SG.svg';
+}
+const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const rnd=n=>Math.floor(Math.random()*n);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
+const RM=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $=id=>document.getElementById(id);
+
+/* ---------- saved progress ---------- */
+const KEY='guess-country-v1';
+let save={stars:0,stamps:{},sound:true,diff:'easy'};
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object')save=Object.assign(save,s)}catch(e){}
+const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(save))}catch(e){}};
+function refreshCounts(){$('starCount').textContent=save.stars;$('stampCount').textContent=Object.keys(save.stamps).filter(k=>BY[k]).length+' / '+C.length}
+
+/* ---------- sound + voice ---------- */
+let AC=null;
+function tone(fs,dur){if(!save.sound)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const t0=AC.currentTime;fs.forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type='triangle';o.frequency.value=f;const t=t0+i*dur;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.22,t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+dur+0.05)})}catch(e){}}
+const yay=()=>tone([523,659,784,1047],0.11), oops=()=>tone([300,220],0.14), tick=()=>tone([660],0.06);
+function say(text){try{if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text.replace(/[\p{Extended_Pictographic}\p{Regional_Indicator}️‍]/gu,'').trim());u.rate=0.95;u.lang='en-GB';speechSynthesis.speak(u)}catch(e){}}
+const SPEAKER='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>';
+function drawSoundBtn(){$('soundBtn').innerHTML=save.sound?SPEAKER:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>';$('soundBtn').setAttribute('aria-pressed',save.sound)}
+
+function confetti(){if(RM)return;const box=$('confetti');const cols=['#ff5a5f','#ffc83d','#1679c9','#2fb36b','#ffffff'];box.innerHTML=Array.from({length:40},()=>`<i style="left:${rnd(100)}%;background:${cols[rnd(5)]};animation-delay:${(Math.random()*0.3).toFixed(2)}s;animation-duration:${(1+Math.random()*0.8).toFixed(2)}s"></i>`).join('');setTimeout(()=>{box.innerHTML=''},2200)}
+
+/* flag-emoji support check (Windows shows letters) */
+function flagsWork(){try{const c=document.createElement('canvas');c.width=c.height=32;const x=c.getContext('2d');x.font='28px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';x.textBaseline='top';x.fillText(flagOf('SG'),0,0);const d=x.getImageData(0,0,32,32).data;for(let i=0;i<d.length;i+=4){if(d[i]>150&&d[i+1]<90&&d[i+2]<90&&d[i+3]>100)return true}return false}catch(e){return true}}
+
+/* ---------- screens ---------- */
+const SCREENS=['home','game','done','passport'];
+function show(id){SCREENS.forEach(s=>$(s).hidden=s!==id);$('homeBtn').hidden=id==='home';window.scrollTo(0,0);try{speechSynthesis.cancel()}catch(e){}}
+
+/* ---------- round setup ---------- */
+const ROUND={flags:10,map:8,clues:8,spell:5};
+const G={mode:'',list:[],i:0,res:[],wrong:0,done:false,newStamps:[]};
+function pickRound(mode){
+  let pool=C.slice();
+  if(mode==='map')pool=pool.filter(c=>GEO&&GEO.byId[c.id]);
+  if(mode==='spell'&&save.diff==='easy')pool=pool.filter(c=>c.n.replace(/[^A-Za-z]/g,'').length<=10);
+  pool=shuffle(pool);
+  const fresh=pool.filter(c=>!save.stamps[c.id]);
+  const n=ROUND[mode];
+  const pick=fresh.slice(0,Math.ceil(n*0.7));
+  for(const c of pool){if(pick.length>=n)break;if(!pick.includes(c))pick.push(c)}
+  return shuffle(pick);
+}
+function choicesFor(c){
+  const tricky=save.diff==='tricky';const n=tricky?4:3;
+  let others=C.filter(o=>o.id!==c.id);
+  if(tricky){const same=others.filter(o=>o.k===c.k);if(same.length>=n-1)others=same}
+  return shuffle([c,...shuffle(others).slice(0,n-1)]);
+}
+function start(mode){
+  G.mode=mode;G.list=pickRound(mode);G.i=0;G.res=[];G.newStamps=[];
+  show('game');renderQ();
+}
+function progressDots(){return `<div class="progress" aria-label="Question ${G.i+1} of ${G.list.length}">${G.list.map((c,i)=>`<i class="${G.res[i]===true?'ok':G.res[i]===false?'miss':i===G.i?'now':''}"></i>`).join('')}</div>`}
+function renderQ(){G.wrong=0;G.done=false;({flags:renderFlags,map:renderMap,clues:renderClues,spell:renderSpell})[G.mode]()}
+
+function win(c){
+  G.done=true;G.res[G.i]=true;save.stars++;
+  if(!save.stamps[c.id])G.newStamps.push(c.id);
+  save.stamps[c.id]=(save.stamps[c.id]||0)+1;persist();refreshCounts();yay();confetti();
+}
+function lose(){G.done=true;G.res[G.i]=false;oops()}
+function feedbackHTML(c,ok){
+  const head=ok?(G.newStamps.includes(c.id)?'New stamp! ':'Well done! '):'The answer is';
+  const cap=c.cap?`Capital: ${esc(c.cap)} · `:'';
+  return `<div class="feedback" role="status"><span class="flag">${c.f}</span><div><h3>${ok?esc(head)+esc(c.n)+'!':esc(head)+' '+esc(c.n)}</h3><p>${cap}${esc(CONT[c.k])}<br>${esc(c.fact)}</p></div><button class="next" id="nextBtn">${G.i+1<G.list.length?'Next':'Finish'} →</button></div>`;
+}
+function bindNext(c){const b=$('nextBtn');if(!b)return;b.onclick=()=>{tick();G.i++;if(G.i<G.list.length)renderQ();else finish()};b.focus({preventScroll:true});say((G.res[G.i]?'Yes! ':'It was ')+c.n+'. '+c.fact)}
+
+/* ---------- mode: flags ---------- */
+function renderFlags(){
+  const c=G.list[G.i];const ch=choicesFor(c);
+  $('game').innerHTML=progressDots()+`<div class="qcard"><span class="flag bigflag" role="img" aria-label="A flag">${c.f}</span><p class="ask">Which country has this flag?</p></div>
+  <div class="opts">${ch.map(o=>`<button class="opt" data-id="${o.id}">${esc(o.n)}</button>`).join('')}</div><div id="fb"></div>`;
+  wireOptions(c);
+}
+function wireOptions(c,onWrong){
+  const btns=[...$('game').querySelectorAll('.opt')];
+  btns.forEach(b=>b.onclick=()=>{
+    if(G.done||b.disabled)return;
+    if(b.dataset.id===c.id){b.classList.add('ok');win(c);btns.forEach(x=>x.disabled=true);$('fb').innerHTML=feedbackHTML(c,true);bindNext(c);return}
+    b.classList.add('no');b.disabled=true;G.wrong++;oops();
+    const left=btns.filter(x=>!x.disabled);
+    if(left.length<=1){left.forEach(x=>x.classList.add('ok'));btns.forEach(x=>x.disabled=true);lose();$('fb').innerHTML=feedbackHTML(c,false);bindNext(c);return}
+    if(onWrong)onWrong();
+  });
+}
+
+/* ---------- mode: picture clues ---------- */
+function cluesOf(c){return [c.fact,'🌍 It is in '+CONT[c.k],'🔤 Its name starts with the letter '+c.n[0],c.cap?'🏛️ Its capital city is '+c.cap:null].filter(Boolean)}
+function renderClues(){
+  const c=G.list[G.i];const ch=choicesFor(c);const cl=cluesOf(c);
+  $('game').innerHTML=progressDots()+`<div class="qcard"><p class="ask">Which country am I?</p><div class="clues" id="clues"></div>
+  <div class="tools"><button class="ghost" id="readBtn">${SPEAKER} Read to me</button></div></div>
+  <div class="opts">${ch.map(o=>`<button class="opt" data-id="${o.id}">${esc(o.n)}</button>`).join('')}</div><div id="fb"></div>`;
+  const draw=()=>{$('clues').innerHTML=cl.slice(0,G.wrong+1).map(t=>`<div class="clue">${esc(t)}</div>`).join('')};
+  draw();
+  $('readBtn').onclick=()=>say('Which country am I? '+cl.slice(0,G.wrong+1).join('. ')+'. Is it '+ch.map(o=>o.n).join(', or ')+'?');
+  wireOptions(c,draw);
+}
+
+/* ---------- mode: spell it (balloons) ---------- */
+const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
+function renderSpell(){
+  const c=G.list[G.i];const target=norm(c.n);const lives=save.diff==='tricky'?6:8;
+  const st={guess:new Set(),misses:0,flag:save.diff==='easy',cap:false};
+  const cols=['#ff5a5f','#ffc83d','#1679c9','#2fb36b','#a66cff','#ff8a3d','#19b5c9','#ff6fb5'];
+  const balloons=Array.from({length:lives},(_,i)=>{const off=i-(lives-1)/2;const x=150+off*30,y=60+Math.abs(off)*9+(i%2)*14;return `<g class="b" id="bl${i}"><path d="M${x} ${y+22} Q${x+(150-x)*0.4} ${y+90} 150 196" stroke="#7a8a9a" stroke-width="1.6" fill="none"/><ellipse cx="${x}" cy="${y}" rx="15" ry="19" fill="${cols[i%8]}"/><ellipse cx="${x-5}" cy="${y-7}" rx="4" ry="6" fill="#fff" opacity=".45"/><path d="M${x-3} ${y+19}h6l-3 5z" fill="${cols[i%8]}"/></g>`}).join('');
+  $('game').innerHTML=progressDots()+`<div class="qcard"><div class="spell"><svg class="balloons" id="bsvg" viewBox="0 0 300 250" aria-hidden="true">${balloons}<g class="basket"><path d="M128 196h44l-6 30h-32z" fill="#a0703f" stroke="#6b4626" stroke-width="3" stroke-linejoin="round"/><path d="M131 206h38M133 216h34" stroke="#6b4626" stroke-width="2"/><circle cx="150" cy="186" r="9" fill="#ffd2a8"/><path d="M140 182q10-10 20 0" fill="#ff5a5f"/></g></svg>
+  <div><p class="ask">Spell the country!</p><div id="hints" class="clues" style="margin:12px 0"></div><div class="tools"><button class="ghost" id="hintBtn">Show a clue</button><button class="ghost" id="readBtn">${SPEAKER} Read</button></div></div></div>
+  <div class="word" id="word"></div><div class="keys" id="keys">${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(L=>`<button class="key" data-k="${L}">${L}</button>`).join('')}</div></div><div id="fb"></div>`;
+  const drawWord=(reveal)=>{$('word').innerHTML=c.n.split(' ').map((w,wi)=>`<span class="w">${[...w].map((ch,ci)=>{const L=norm(ch);if(!/[A-Z]/.test(L))return `<span class="ch sym">${esc(ch)}</span>`;const got=st.guess.has(L);return `<span class="ch${!got&&reveal?' miss':''}">${got||reveal?esc(ch.toUpperCase()):''}</span>`}).join('')}</span>`).join('')};
+  const drawHints=()=>{$('hints').innerHTML=`<div class="clue">🌍 In ${esc(CONT[c.k])}</div>`+(st.flag?`<div class="clue"><span class="flag">${c.f}</span> Its flag</div>`:'')+(st.cap?`<div class="clue">${esc(c.fact)}</div>`:'');$('hintBtn').hidden=st.flag&&st.cap};
+  drawWord(false);drawHints();
+  $('hintBtn').onclick=()=>{if(!st.flag)st.flag=true;else st.cap=true;drawHints()};
+  $('readBtn').onclick=()=>say('Spell the country. It is in '+CONT[c.k]+'. It has '+c.n.replace(/[^A-Za-z]/g,'').length+' letters.'+(st.cap?' '+c.fact:''));
+  const letters=new Set([...target].filter(L=>/[A-Z]/.test(L)));
+  $('keys').onclick=e=>{const b=e.target.closest('.key');if(!b||b.disabled||G.done)return;const L=b.dataset.k;b.disabled=true;st.guess.add(L);
+    if(letters.has(L)){b.classList.add('hit');tick();drawWord(false);
+      if([...letters].every(x=>st.guess.has(x))){win(c);endSpell()}}
+    else{b.classList.add('bad');oops();const bl=$('bl'+st.misses);if(bl)bl.classList.add('popped');st.misses++;
+      if(st.misses>=lives){$('bsvg').classList.add('landed');drawWord(true);lose();endSpell()}}};
+  function endSpell(){$('game').querySelectorAll('.key').forEach(k=>k.disabled=true);$('fb').innerHTML=feedbackHTML(c,G.res[G.i]);bindNext(c)}
+}
+
+/* ---------- mode: map ---------- */
+let GEO=null,geoState='loading';
+const GEO_SRC=[
+  ['esm','https://cdn.jsdelivr.net/npm/@amcharts/amcharts4-geodata@4/worldLow.js'],
+  ['script','https://cdn.jsdelivr.net/npm/@amcharts/amcharts4-geodata@4/dist/script/worldLow.js','am4geodata_worldLow'],
+  ['esm','https://cdn.jsdelivr.net/npm/@amcharts/amcharts5-geodata@5/worldLow.js'],
+  ['esm','https://cdn.jsdelivr.net/npm/@amcharts/amcharts5-geodata@5/worldLow/+esm'],
+  ['esm','https://unpkg.com/@amcharts/amcharts4-geodata@4/worldLow.js']
+];
+const timeout=(p,ms)=>Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),ms))]);
+function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+async function loadGeo(){
+  for(const s of GEO_SRC){try{let g;
+    if(s[0]==='esm'){const m=await timeout(import(s[1]),12000);g=m.default||m}
+    else{await timeout(loadScript(s[1]),12000);g=window[s[2]]}
+    if(g&&g.features&&g.features.length>100)return g}catch(e){}}
+  return null;
+}
+const D2R=Math.PI/180;
+const P=(lo,la)=>{la=Math.max(-84,Math.min(84,la));return [lo,-1.25*Math.log(Math.tan(Math.PI/4+0.4*la*D2R))/D2R]};
+function prepGeo(g){
+  const feats=[],byId={};let W=[1e9,1e9,-1e9,-1e9];
+  for(const f of g.features){
+    const pr=f.properties||{};const id=String(pr.id||f.id||'').toUpperCase();
+    if(!id||id==='AQ'||!f.geometry)continue;
+    const gm=f.geometry;const polys=gm.type==='Polygon'?[gm.coordinates]:gm.type==='MultiPolygon'?gm.coordinates:[];
+    let d='',best=null,bestA=-1;
+    for(const poly of polys){poly.forEach((ring,ri)=>{const pts=ring.map(p=>P(p[0],p[1]));if(pts.length<3)return;
+      d+='M'+pts.map(p=>p[0].toFixed(2)+','+p[1].toFixed(2)).join('L')+'Z';
+      if(ri===0){let a=0;for(let i=0,j=pts.length-1;i<pts.length;j=i++)a+=pts[j][0]*pts[i][1]-pts[i][0]*pts[j][1];a=Math.abs(a/2);if(a>bestA){bestA=a;best=pts}}
+      for(const p of pts){W[0]=Math.min(W[0],p[0]);W[1]=Math.min(W[1],p[1]);W[2]=Math.max(W[2],p[0]);W[3]=Math.max(W[3],p[1])}})}
+    if(!best)continue;
+    let bb=[1e9,1e9,-1e9,-1e9];for(const p of best){bb[0]=Math.min(bb[0],p[0]);bb[1]=Math.min(bb[1],p[1]);bb[2]=Math.max(bb[2],p[0]);bb[3]=Math.max(bb[3],p[1])}
+    let cx=0,cy=0,A=0;for(let i=0,j=best.length-1;i<best.length;j=i++){const k=best[j][0]*best[i][1]-best[i][0]*best[j][1];A+=k;cx+=(best[j][0]+best[i][0])*k;cy+=(best[j][1]+best[i][1])*k}
+    const c=Math.abs(A)>1e-6?[cx/(3*A),cy/(3*A)]:[(bb[0]+bb[2])/2,(bb[1]+bb[3])/2];
+    const ft={id,name:BY[id]?BY[id].n:(pr.name||id),d,c,bb,small:Math.hypot(bb[2]-bb[0],bb[3]-bb[1])<2.2,ours:!!BY[id]};
+    feats.push(ft);byId[id]=ft;
+  }
+  return {feats,byId,world:W};
+}
+function initMap(){
+  loadGeo().then(g=>{
+    if(g){try{GEO=prepGeo(g)}catch(e){GEO=null}}
+    geoState=GEO?'ready':'failed';
+    $('mapMode').disabled=!GEO;
+    $('mapNote').textContent=GEO?'Find the country on the world map.':'The map could not load. Check the internet connection and reload the page.';
+  });
+  $('mapNote').textContent='Loading the world map…';$('mapMode').disabled=true;
+}
+let view=[0,0,1,1],mapSvg=null;
+function setView(t,anim){
+  const from=view.slice();const t0=performance.now();const dur=anim&&!RM?650:0;
+  const step=now=>{let k=dur?Math.min(1,(now-t0)/dur):1;k=k<0.5?2*k*k:1-Math.pow(-2*k+2,2)/2;view=from.map((v,i)=>v+(t[i]-v)*k);if(mapSvg){mapSvg.setAttribute('viewBox',view.map(v=>v.toFixed(2)).join(' '));if(k>=1)sizeDots()}if(k<1)requestAnimationFrame(step)};
+  if(dur)requestAnimationFrame(step);else step(t0);
+}
+function sizeDots(){if(!mapSvg)return;const r=(view[2]*0.011).toFixed(3);mapSvg.querySelectorAll('.dot').forEach(d=>d.setAttribute('r',r))}
+function aspect(){const r=mapSvg.getBoundingClientRect();return r.width>0&&r.height>0?r.width/r.height:1.6}
+function worldView(){const W=GEO.world;const pad=4;let x=W[0]-pad,y=W[1]-pad,w=W[2]-W[0]+pad*2,h=W[3]-W[1]+pad*2;const a=aspect();if(w/h<a){const nw=h*a;x-=(nw-w)/2;w=nw}else{const nh=w/a;y-=(nh-h)/2;h=nh}return [x,y,w,h]}
+function nearView(ft){const a=aspect();const bw=ft.bb[2]-ft.bb[0],bh=ft.bb[3]-ft.bb[1];let w=Math.max(70,bw*2.2,bh*2.2*a);let h=w/a;const cx=ft.c[0]+(Math.random()-0.5)*w*0.45,cy=ft.c[1]+(Math.random()-0.5)*h*0.4;return [cx-w/2,cy-h/2,w,h]}
+function renderMap(){
+  const c=G.list[G.i];const ft=GEO.byId[c.id];
+  const paths=GEO.feats.map(f=>`<path d="${f.d}" data-id="${f.id}"${f.ours?'':' class="other"'}/>`).join('');
+  const dots=GEO.feats.filter(f=>f.small&&f.ours).map(f=>`<circle class="dot" data-id="${f.id}" cx="${f.c[0].toFixed(2)}" cy="${f.c[1].toFixed(2)}" r="1"/>`).join('');
+  $('game').innerHTML=progressDots()+`<div class="qcard"><p class="ask">Where is <span class="flag">${c.f}</span> ${esc(c.n)}?</p>
+  <div class="mapwrap"><svg id="map" preserveAspectRatio="xMidYMid meet" role="img" aria-label="World map"><rect x="-1000" y="-1000" width="2000" height="2000" fill="transparent"/>${paths}<g>${dots}</g></svg>
+  <div class="toast" id="toast" hidden></div><div class="mapbtns"><button id="zoomBtn"></button></div></div></div><div id="fb"></div>`;
+  mapSvg=$('map');
+  let wide=save.diff==='tricky';const near=nearView(ft);
+  const zb=$('zoomBtn');const setZ=()=>{zb.textContent=wide?'Zoom in':'Whole world'};setZ();
+  view=wide?worldView():near;setView(view,false);
+  zb.onclick=()=>{wide=!wide;setZ();setView(wide?worldView():nearView(ft),true)};
+  let tt=null;const toast=t=>{const el=$('toast');el.textContent=t;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,2200)};
+  const mark=(id,cls)=>mapSvg.querySelectorAll(`[data-id="${id}"]`).forEach(e=>e.classList.add(cls));
+  mapSvg.addEventListener('click',e=>{
+    if(G.done)return;const el=e.target.closest('[data-id]');if(!el)return;const id=el.dataset.id;
+    if(id===c.id){mark(id,'right');toast('Yes! '+c.n);win(c);$('fb').innerHTML=feedbackHTML(c,true);bindNext(c);return}
+    const f=GEO.byId[id];if(!f||mapSvg.querySelector(`[data-id="${id}"].wrong`))return;
+    mark(id,'wrong');G.wrong++;oops();toast('That is '+f.name+(f.ours?'':' (not on our list)'));
+    if(G.wrong===2){mark(c.id,'hint');if(wide){wide=false;setZ();setView(nearView(ft),true)}toast('Look for the yellow blinking one!')}
+    if(G.wrong>=4){mapSvg.querySelectorAll('.hint').forEach(x=>x.classList.remove('hint'));mark(c.id,'right');lose();$('fb').innerHTML=feedbackHTML(c,false);bindNext(c)}
+  });
+}
+
+/* ---------- finish ---------- */
+function finish(){
+  const got=G.res.filter(Boolean).length;
+  const msg=got===G.list.length?'Perfect!':got>=G.list.length*0.7?'Amazing!':got>=G.list.length*0.4?'Great job!':'Good try!';
+  $('done').innerHTML=`<h2 class="fred">${msg}</h2><p class="ask">You got ${got} out of ${G.list.length}</p>
+  <div class="stars">${Array.from({length:got},(_,i)=>`<svg style="animation-delay:${i*0.08}s"><use href="#star"/></svg>`).join('')||'<p>Keep going — every try makes you a better explorer.</p>'}</div>
+  ${G.newStamps.length?`<p class="ask" style="font-size:24px">New passport stamps</p><div class="newst">${G.newStamps.map(id=>`<span class="stamp got" style="--r:${rnd(9)-4}deg"><span class="flag">${BY[id].f}</span>${esc(BY[id].n)}</span>`).join('')}</div>`:''}
+  <div class="tools"><button class="next" id="againBtn">Play again</button><button class="ghost" id="toPP">Open passport</button><button class="ghost" id="toHome">Choose a game</button></div>`;
+  show('done');if(got)confetti();say(msg+' You got '+got+' out of '+G.list.length);
+  $('againBtn').onclick=()=>start(G.mode);$('toPP').onclick=openPassport;$('toHome').onclick=()=>show('home');
+}
+
+/* ---------- passport ---------- */
+function openPassport(sel){
+  const have=C.filter(c=>save.stamps[c.id]).length;const pct=Math.round(have/C.length*100);
+  const det=sel&&BY[sel]&&save.stamps[sel]?BY[sel]:null;
+  const groups=Object.keys(CONT).map(k=>{const list=C.filter(c=>c.k===k).sort((a,b)=>a.n.localeCompare(b.n));const g=list.filter(c=>save.stamps[c.id]).length;
+    return `<div class="cont"><h3>${CONT[k]} <small>${g} of ${list.length}</small></h3><div class="grid">${list.map(c=>save.stamps[c.id]
+      ?`<button class="stamp got" data-id="${c.id}" style="--r:${(c.id.charCodeAt(0)%7)-3}deg"><span class="flag">${c.f}</span>${esc(c.n)}</button>`
+      :`<div class="stamp"><span class="q">?</span>${esc(c.n)}</div>`).join('')}</div></div>`}).join('');
+  $('passport').innerHTML=`<div class="pphead"><h2>My Passport</h2><span class="pill" style="background:var(--ocean)">${have} of ${C.length} countries</span></div>
+  <div class="meter" aria-hidden="true"><b style="width:${pct}%"></b></div>
+  ${det?`<div class="detail"><span class="flag">${det.f}</span><div><h3>${esc(det.n)}</h3><p>${det.cap?'Capital: '+esc(det.cap)+' · ':''}${esc(CONT[det.k])}</p><p>${esc(det.fact)}</p><p style="color:var(--soft)">Guessed ${save.stamps[det.id]} time${save.stamps[det.id]>1?'s':''}</p></div><button class="ghost" id="readDet">${SPEAKER}</button></div>`:'<p style="color:var(--soft)">Tap a stamp to learn about that country.</p>'}
+  ${groups}
+  <div class="confirm" id="resetRow"></div>`;
+  show('passport');
+  $('passport').querySelectorAll('.stamp.got').forEach(b=>b.onclick=()=>{tick();openPassport(b.dataset.id)});
+  if(det)$('readDet').onclick=()=>say(det.n+'. '+(det.cap?'Capital city: '+det.cap+'. ':'')+det.fact);
+  resetRow('resetRow',()=>openPassport());
+}
+/* reset progress: button → in-page "are you sure?" → erase */
+function resetRow(rowId,after){
+  const row=$(rowId);
+  const idle=()=>{row.innerHTML=`<button class="ghost" data-r="ask">Reset progress</button>`};
+  row.onclick=e=>{const b=e.target.closest('[data-r]');if(!b)return;const r=b.dataset.r;
+    if(r==='ask')row.innerHTML=`<strong>Erase all stars and passport stamps?</strong><button class="ghost" data-r="yes" style="background:var(--coral);color:#fff">Yes, erase</button><button class="ghost" data-r="no">No, keep them</button>`;
+    else if(r==='yes'){save.stamps={};save.stars=0;persist();refreshCounts();idle();if(after)after()}
+    else idle()};
+  idle();
+}
+
+/* ---------- wire up ---------- */
+document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{if(b.disabled)return;tick();start(b.dataset.mode)});
+const setDiff=d=>{save.diff=d;persist();$('dEasy').setAttribute('aria-pressed',d==='easy');$('dTricky').setAttribute('aria-pressed',d==='tricky')};
+$('dEasy').onclick=()=>{setDiff('easy');tick()};$('dTricky').onclick=()=>{setDiff('tricky');tick()};
+$('homeBtn').onclick=()=>show('home');
+$('ppBtn').onclick=()=>openPassport();
+$('soundBtn').onclick=()=>{save.sound=!save.sound;persist();drawSoundBtn();if(!save.sound)try{speechSynthesis.cancel()}catch(e){}};
+setDiff(save.diff);drawSoundBtn();refreshCounts();resetRow('homeReset');
+loadFlags();
+initMap();
+}
+</script>
+</body>
+</html>
