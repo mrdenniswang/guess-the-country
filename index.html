@@ -47,7 +47,7 @@ button:focus-visible{outline:4px solid var(--sun);outline-offset:3px}
 .plane{transform-origin:150px 150px;animation:orbit 14s linear infinite}
 @keyframes orbit{to{transform:rotate(360deg)}}
 .seg{display:inline-flex;background:rgba(0,0,0,.18);border-radius:999px;padding:4px;margin-bottom:22px}
-.seg button{min-height:48px;padding:0 22px;border-radius:999px;font-weight:800;font-size:18px;color:#fff}
+.seg button{min-height:48px;padding:0 clamp(14px,3vw,22px);border-radius:999px;font-weight:800;font-size:18px;color:#fff}
 .seg button[aria-pressed=true]{background:var(--sun);color:#13283f}
 .wave{display:block;width:100%;height:36px;color:var(--bg)}
 .modes{max-width:1100px;margin:0 auto;padding:10px max(5vw,16px) 40px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
@@ -92,7 +92,8 @@ button:focus-visible{outline:4px solid var(--sun);outline-offset:3px}
 #map{position:absolute;inset:0;width:100%;height:100%;touch-action:manipulation}
 #map path{fill:var(--land);stroke:var(--landedge);stroke-width:.8px;vector-effect:non-scaling-stroke;stroke-linejoin:round}
 #map path.other{fill:light-dark(#efe3c4,#b9a774)}
-#map .dot{fill:var(--land);stroke:var(--landedge);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+#map .ring{fill:none!important;stroke-width:4px;vector-effect:non-scaling-stroke;pointer-events:none}
+#map .ring.wrong{stroke:var(--coral)}#map .ring.right{stroke:var(--leaf)}#map .ring.hint{stroke:var(--sun)}
 #map .wrong{fill:var(--coral)!important}
 #map .right{fill:var(--leaf)!important}
 #map .hint{fill:var(--sun)!important;animation:blink 1s infinite}
@@ -171,10 +172,11 @@ button:focus-visible{outline:4px solid var(--sun);outline-offset:3px}
     <div class="heroin">
       <div>
         <h1>Guess the <span>Country!</span></h1>
-        <p>Pick a game. Every country you guess gets a stamp in your passport. Can you collect all 195?</p>
+        <p>Pick a level and a game. Every country you guess gets a stamp in your passport. Can you collect all 195?</p>
         <div class="seg" role="group" aria-label="Difficulty">
           <button id="dEasy" aria-pressed="true">Easy</button>
-          <button id="dTricky" aria-pressed="false">Tricky</button>
+          <button id="dMedium" aria-pressed="false">Medium</button>
+          <button id="dHard" aria-pressed="false">Hard</button>
         </div>
       </div>
       <svg class="globe" viewBox="0 0 300 300" aria-hidden="true">
@@ -450,6 +452,7 @@ const $=id=>document.getElementById(id);
 const KEY='guess-country-v1';
 let save={stars:0,stamps:{},sound:true,diff:'easy'};
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object')save=Object.assign(save,s)}catch(e){}
+if(save.diff==='tricky')save.diff='hard';if(!['easy','medium','hard'].includes(save.diff))save.diff='easy';
 const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(save))}catch(e){}};
 function refreshCounts(){$('starCount').textContent=save.stars;$('stampCount').textContent=Object.keys(save.stamps).filter(k=>BY[k]).length+' / '+C.length}
 
@@ -472,11 +475,20 @@ function show(id){SCREENS.forEach(s=>$(s).hidden=s!==id);$('homeBtn').hidden=id=
 
 /* ---------- round setup ---------- */
 const ROUND={flags:10,map:8,clues:8,spell:5};
+/* Easy = well-known countries; Medium adds more; Hard = all 195 */
+const EASY='SG MY ID TH VN PH CN JP KR IN AU NZ US CA MX BR AR GB FR DE IT ES PT NL CH SE NO RU EG ZA KE NG GR TR SA AE IE BE DK FI PL AT CL PE CO JM CU NP PK LK BD KH'.split(' ');
+const MEDIUM=EASY.concat('MM LA BN MN KP KZ IR IQ IL JO QA KW LB AF UZ MV BT TL MA DZ TN LY GH ET TZ UG MG ZW ZM NA BW SN CM SD SO CD BO VE EC UY PY CR PA GT HN DO HT BS HR CZ HU UA IS RO BG RS SK SI LT LV EE BY LU MC VA MT CY FJ PG WS TO'.split(' '));
+const LV={
+  easy:  {ids:EASY,  n:3,same:false,lives:9,flag:true, first:true, clues:2,map:'close', hint:1,maxLen:9},
+  medium:{ids:MEDIUM,n:4,same:false,lives:8,flag:true, first:false,clues:1,map:'region',hint:2,maxLen:11},
+  hard:  {ids:null,  n:4,same:true, lives:6,flag:false,first:false,clues:1,map:'world', hint:2,maxLen:99}};
+const lv=()=>LV[save.diff]||LV.easy;
+const levelPool=()=>{const L=lv();return L.ids?L.ids.map(id=>BY[id]).filter(Boolean):C.slice()};
 const G={mode:'',list:[],i:0,res:[],wrong:0,done:false,newStamps:[]};
 function pickRound(mode){
-  let pool=C.slice();
+  let pool=levelPool();
   if(mode==='map')pool=pool.filter(c=>GEO&&GEO.byId[c.id]);
-  if(mode==='spell'&&save.diff==='easy')pool=pool.filter(c=>c.n.replace(/[^A-Za-z]/g,'').length<=10);
+  if(mode==='spell')pool=pool.filter(c=>c.n.replace(/[^A-Za-z]/g,'').length<=lv().maxLen);
   pool=shuffle(pool);
   const fresh=pool.filter(c=>!save.stamps[c.id]);
   const n=ROUND[mode];
@@ -485,9 +497,9 @@ function pickRound(mode){
   return shuffle(pick);
 }
 function choicesFor(c){
-  const tricky=save.diff==='tricky';const n=tricky?4:3;
-  let others=C.filter(o=>o.id!==c.id);
-  if(tricky){const same=others.filter(o=>o.k===c.k);if(same.length>=n-1)others=same}
+  const L=lv();const n=L.n;
+  let others=levelPool().filter(o=>o.id!==c.id);
+  if(L.same){const same=others.filter(o=>o.k===c.k);if(same.length>=n-1)others=same}
   return shuffle([c,...shuffle(others).slice(0,n-1)]);
 }
 function start(mode){
@@ -536,25 +548,28 @@ function renderClues(){
   $('game').innerHTML=progressDots()+`<div class="qcard"><p class="ask">Which country am I?</p><div class="clues" id="clues"></div>
   <div class="tools"><button class="ghost" id="readBtn">${SPEAKER} Read to me</button></div></div>
   <div class="opts">${ch.map(o=>`<button class="opt" data-id="${o.id}">${esc(o.n)}</button>`).join('')}</div><div id="fb"></div>`;
-  const draw=()=>{$('clues').innerHTML=cl.slice(0,G.wrong+1).map(t=>`<div class="clue">${esc(t)}</div>`).join('')};
+  const shown=()=>cl.slice(0,G.wrong+lv().clues);
+  const draw=()=>{$('clues').innerHTML=shown().map(t=>`<div class="clue">${esc(t)}</div>`).join('')};
   draw();
-  $('readBtn').onclick=()=>say('Which country am I? '+cl.slice(0,G.wrong+1).join('. ')+'. Is it '+ch.map(o=>o.n).join(', or ')+'?');
+  $('readBtn').onclick=()=>say('Which country am I? '+shown().join('. ')+'. Is it '+ch.map(o=>o.n).join(', or ')+'?');
   wireOptions(c,draw);
 }
 
 /* ---------- mode: spell it (balloons) ---------- */
 const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
 function renderSpell(){
-  const c=G.list[G.i];const target=norm(c.n);const lives=save.diff==='tricky'?6:8;
-  const st={guess:new Set(),misses:0,flag:save.diff==='easy',cap:false};
+  const c=G.list[G.i];const target=norm(c.n);const L=lv();const lives=L.lives;
+  const st={guess:new Set(),misses:0,flag:L.flag,cap:false};
+  if(L.first)st.guess.add(target.replace(/[^A-Z]/g,'')[0]);
   const cols=['#ff5a5f','#ffc83d','#1679c9','#2fb36b','#a66cff','#ff8a3d','#19b5c9','#ff6fb5'];
-  const balloons=Array.from({length:lives},(_,i)=>{const off=i-(lives-1)/2;const x=150+off*30,y=60+Math.abs(off)*9+(i%2)*14;return `<g class="b" id="bl${i}"><path d="M${x} ${y+22} Q${x+(150-x)*0.4} ${y+90} 150 196" stroke="#7a8a9a" stroke-width="1.6" fill="none"/><ellipse cx="${x}" cy="${y}" rx="15" ry="19" fill="${cols[i%8]}"/><ellipse cx="${x-5}" cy="${y-7}" rx="4" ry="6" fill="#fff" opacity=".45"/><path d="M${x-3} ${y+19}h6l-3 5z" fill="${cols[i%8]}"/></g>`}).join('');
+  const balloons=Array.from({length:lives},(_,i)=>{const off=i-(lives-1)/2;const x=150+off*27,y=60+Math.abs(off)*9+(i%2)*14;return `<g class="b" id="bl${i}"><path d="M${x} ${y+22} Q${x+(150-x)*0.4} ${y+90} 150 196" stroke="#7a8a9a" stroke-width="1.6" fill="none"/><ellipse cx="${x}" cy="${y}" rx="15" ry="19" fill="${cols[i%8]}"/><ellipse cx="${x-5}" cy="${y-7}" rx="4" ry="6" fill="#fff" opacity=".45"/><path d="M${x-3} ${y+19}h6l-3 5z" fill="${cols[i%8]}"/></g>`}).join('');
   $('game').innerHTML=progressDots()+`<div class="qcard"><div class="spell"><svg class="balloons" id="bsvg" viewBox="0 0 300 250" aria-hidden="true">${balloons}<g class="basket"><path d="M128 196h44l-6 30h-32z" fill="#a0703f" stroke="#6b4626" stroke-width="3" stroke-linejoin="round"/><path d="M131 206h38M133 216h34" stroke="#6b4626" stroke-width="2"/><circle cx="150" cy="186" r="9" fill="#ffd2a8"/><path d="M140 182q10-10 20 0" fill="#ff5a5f"/></g></svg>
   <div><p class="ask">Spell the country!</p><div id="hints" class="clues" style="margin:12px 0"></div><div class="tools"><button class="ghost" id="hintBtn">Show a clue</button><button class="ghost" id="readBtn">${SPEAKER} Read</button></div></div></div>
   <div class="word" id="word"></div><div class="keys" id="keys">${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(L=>`<button class="key" data-k="${L}">${L}</button>`).join('')}</div></div><div id="fb"></div>`;
   const drawWord=(reveal)=>{$('word').innerHTML=c.n.split(' ').map((w,wi)=>`<span class="w">${[...w].map((ch,ci)=>{const L=norm(ch);if(!/[A-Z]/.test(L))return `<span class="ch sym">${esc(ch)}</span>`;const got=st.guess.has(L);return `<span class="ch${!got&&reveal?' miss':''}">${got||reveal?esc(ch.toUpperCase()):''}</span>`}).join('')}</span>`).join('')};
   const drawHints=()=>{$('hints').innerHTML=`<div class="clue">🌍 In ${esc(CONT[c.k])}</div>`+(st.flag?`<div class="clue"><span class="flag">${c.f}</span> Its flag</div>`:'')+(st.cap?`<div class="clue">${esc(c.fact)}</div>`:'');$('hintBtn').hidden=st.flag&&st.cap};
   drawWord(false);drawHints();
+  st.guess.forEach(L0=>{const k=$('keys').querySelector(`[data-k="${L0}"]`);if(k){k.disabled=true;k.classList.add('hit')}});
   $('hintBtn').onclick=()=>{if(!st.flag)st.flag=true;else st.cap=true;drawHints()};
   $('readBtn').onclick=()=>say('Spell the country. It is in '+CONT[c.k]+'. It has '+c.n.replace(/[^A-Za-z]/g,'').length+' letters.'+(st.cap?' '+c.fact:''));
   const letters=new Set([...target].filter(L=>/[A-Z]/.test(L)));
@@ -618,34 +633,37 @@ function initMap(){
 let view=[0,0,1,1],mapSvg=null;
 function setView(t,anim){
   const from=view.slice();const t0=performance.now();const dur=anim&&!RM?650:0;
-  const step=now=>{let k=dur?Math.min(1,(now-t0)/dur):1;k=k<0.5?2*k*k:1-Math.pow(-2*k+2,2)/2;view=from.map((v,i)=>v+(t[i]-v)*k);if(mapSvg){mapSvg.setAttribute('viewBox',view.map(v=>v.toFixed(2)).join(' '));if(k>=1)sizeDots()}if(k<1)requestAnimationFrame(step)};
+  const step=now=>{let k=dur?Math.min(1,(now-t0)/dur):1;k=k<0.5?2*k*k:1-Math.pow(-2*k+2,2)/2;view=from.map((v,i)=>v+(t[i]-v)*k);if(mapSvg){mapSvg.setAttribute('viewBox',view.map(v=>v.toFixed(2)).join(' '));if(k>=1)sizeRings()}if(k<1)requestAnimationFrame(step)};
   if(dur)requestAnimationFrame(step);else step(t0);
 }
-function sizeDots(){if(!mapSvg)return;const r=(view[2]*0.011).toFixed(3);mapSvg.querySelectorAll('.dot').forEach(d=>d.setAttribute('r',r))}
+function sizeRings(){if(!mapSvg)return;const r=(view[2]*0.022).toFixed(3);mapSvg.querySelectorAll('.ring').forEach(d=>d.setAttribute('r',r))}
 function aspect(){const r=mapSvg.getBoundingClientRect();return r.width>0&&r.height>0?r.width/r.height:1.6}
 function worldView(){const W=GEO.world;const pad=4;let x=W[0]-pad,y=W[1]-pad,w=W[2]-W[0]+pad*2,h=W[3]-W[1]+pad*2;const a=aspect();if(w/h<a){const nw=h*a;x-=(nw-w)/2;w=nw}else{const nh=w/a;y-=(nh-h)/2;h=nh}return [x,y,w,h]}
-function nearView(ft){const a=aspect();const bw=ft.bb[2]-ft.bb[0],bh=ft.bb[3]-ft.bb[1];let w=Math.max(70,bw*2.2,bh*2.2*a);let h=w/a;const cx=ft.c[0]+(Math.random()-0.5)*w*0.45,cy=ft.c[1]+(Math.random()-0.5)*h*0.4;return [cx-w/2,cy-h/2,w,h]}
+function nearView(ft,close){const a=aspect();const bw=ft.bb[2]-ft.bb[0],bh=ft.bb[3]-ft.bb[1];const base=close?(ft.small?22:40):(ft.small?45:70);let w=Math.max(base,bw*2.2,bh*2.2*a);let h=w/a;const j=close?0.3:0.45;const cx=ft.c[0]+(Math.random()-0.5)*w*j,cy=ft.c[1]+(Math.random()-0.5)*h*j*0.9;return [cx-w/2,cy-h/2,w,h]}
 function renderMap(){
   const c=G.list[G.i];const ft=GEO.byId[c.id];
   const paths=GEO.feats.map(f=>`<path d="${f.d}" data-id="${f.id}"${f.ours?'':' class="other"'}/>`).join('');
-  const dots=GEO.feats.filter(f=>f.small&&f.ours).map(f=>`<circle class="dot" data-id="${f.id}" cx="${f.c[0].toFixed(2)}" cy="${f.c[1].toFixed(2)}" r="1"/>`).join('');
   $('game').innerHTML=progressDots()+`<div class="qcard"><p class="ask">Where is <span class="flag">${c.f}</span> ${esc(c.n)}?</p>
-  <div class="mapwrap"><svg id="map" preserveAspectRatio="xMidYMid meet" role="img" aria-label="World map"><rect x="-1000" y="-1000" width="2000" height="2000" fill="transparent"/>${paths}<g>${dots}</g></svg>
+  <div class="mapwrap"><svg id="map" preserveAspectRatio="xMidYMid meet" role="img" aria-label="World map"><rect x="-1000" y="-1000" width="2000" height="2000" fill="transparent"/>${paths}<g id="rings"></g></svg>
   <div class="toast" id="toast" hidden></div><div class="mapbtns"><button id="zoomBtn"></button></div></div></div><div id="fb"></div>`;
   mapSvg=$('map');
-  let wide=save.diff==='tricky';const near=nearView(ft);
+  const L=lv();const close=L.map==='close';let wide=L.map==='world';const near=nearView(ft,close);
   const zb=$('zoomBtn');const setZ=()=>{zb.textContent=wide?'Zoom in':'Whole world'};setZ();
   view=wide?worldView():near;setView(view,false);
-  zb.onclick=()=>{wide=!wide;setZ();setView(wide?worldView():nearView(ft),true)};
+  zb.onclick=()=>{wide=!wide;setZ();setView(wide?worldView():nearView(ft,close),true)};
   let tt=null;const toast=t=>{const el=$('toast');el.textContent=t;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,2200)};
-  const mark=(id,cls)=>mapSvg.querySelectorAll(`[data-id="${id}"]`).forEach(e=>e.classList.add(cls));
+  const mark=(id,cls)=>{mapSvg.querySelectorAll(`path[data-id="${id}"]`).forEach(e=>e.classList.add(cls));const f=GEO.byId[id];
+    if(f&&f.small){let r=mapSvg.querySelector(`.ring[data-r="${id}"]`);if(!r){r=document.createElementNS('http://www.w3.org/2000/svg','circle');r.setAttribute('cx',f.c[0]);r.setAttribute('cy',f.c[1]);r.dataset.r=id;$('rings').appendChild(r)}r.setAttribute('class','ring '+cls);sizeRings()}};
+  /* tiny countries are hard to hit with a finger: a tap close to one counts as tapping it */
+  const tinyNear=e=>{const m=mapSvg.getScreenCTM();if(!m)return null;const pt=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());const px=mapSvg.getBoundingClientRect().width/view[2];let best=null,bd=20;
+    for(const f of GEO.feats){if(!f.small||!f.ours)continue;const d=Math.hypot(f.c[0]-pt.x,f.c[1]-pt.y)*px;if(d<bd){bd=d;best=f.id}}return best};
   mapSvg.addEventListener('click',e=>{
-    if(G.done)return;const el=e.target.closest('[data-id]');if(!el)return;const id=el.dataset.id;
+    if(G.done)return;const el=e.target.closest('[data-id]');const hit=el&&el.dataset.id;const id=hit===c.id?hit:(tinyNear(e)||hit);if(!id)return;
     if(id===c.id){mark(id,'right');toast('Yes! '+c.n);win(c);$('fb').innerHTML=feedbackHTML(c,true);bindNext(c);return}
-    const f=GEO.byId[id];if(!f||mapSvg.querySelector(`[data-id="${id}"].wrong`))return;
+    const f=GEO.byId[id];if(!f||mapSvg.querySelector(`[data-id="${id}"].wrong,[data-r="${id}"].wrong`))return;
     mark(id,'wrong');G.wrong++;oops();toast('That is '+f.name+(f.ours?'':' (not on our list)'));
-    if(G.wrong===2){mark(c.id,'hint');if(wide){wide=false;setZ();setView(nearView(ft),true)}toast('Look for the yellow blinking one!')}
-    if(G.wrong>=4){mapSvg.querySelectorAll('.hint').forEach(x=>x.classList.remove('hint'));mark(c.id,'right');lose();$('fb').innerHTML=feedbackHTML(c,false);bindNext(c)}
+    if(G.wrong===L.hint){mark(c.id,'hint');if(wide){wide=false;setZ();setView(nearView(ft,true),true)}toast('Look for the yellow blinking one!')}
+    if(G.wrong>=L.hint+2){mapSvg.querySelectorAll('.hint').forEach(x=>x.classList.remove('hint'));mark(c.id,'right');lose();$('fb').innerHTML=feedbackHTML(c,false);bindNext(c)}
   });
 }
 
@@ -692,8 +710,9 @@ function resetRow(rowId,after){
 
 /* ---------- wire up ---------- */
 document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{if(b.disabled)return;tick();start(b.dataset.mode)});
-const setDiff=d=>{save.diff=d;persist();$('dEasy').setAttribute('aria-pressed',d==='easy');$('dTricky').setAttribute('aria-pressed',d==='tricky')};
-$('dEasy').onclick=()=>{setDiff('easy');tick()};$('dTricky').onclick=()=>{setDiff('tricky');tick()};
+const DB={easy:'dEasy',medium:'dMedium',hard:'dHard'};
+const setDiff=d=>{save.diff=d;persist();for(const k in DB)$(DB[k]).setAttribute('aria-pressed',k===d)};
+for(const k in DB)$(DB[k]).onclick=()=>{setDiff(k);tick()};
 $('homeBtn').onclick=()=>show('home');
 $('ppBtn').onclick=()=>openPassport();
 $('soundBtn').onclick=()=>{save.sound=!save.sound;persist();drawSoundBtn();if(!save.sound)try{speechSynthesis.cancel()}catch(e){}};
