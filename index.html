@@ -57,6 +57,22 @@ button:focus-visible{outline:4px solid var(--sun);outline-offset:3px}
 .mode h2{font-size:28px;font-weight:600}
 .mode p{margin:6px 0 0;color:var(--soft);font-size:16px}
 .mode[disabled]{opacity:.55;cursor:default}
+.mode.wide{grid-column:1/-1}
+/* word search */
+.ws{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px;align-items:start;margin-top:14px}
+.wsbox{container-type:inline-size;background:var(--card);border-radius:24px;padding:12px;box-shadow:0 6px 0 var(--line)}
+.wsgrid{display:grid;gap:3px;touch-action:none;user-select:none;-webkit-user-select:none}
+.wc{aspect-ratio:1;display:grid;place-items:center;border-radius:9px;background:var(--bg);font-family:Fredoka,sans-serif;font-weight:600;font-size:22px;font-size:calc(100cqi / var(--n) * .52);line-height:1;cursor:pointer}
+.wc.start,.wc.sel{background:var(--sun);color:#13283f}
+.wc.f0{background:#ff5a5f;color:#fff}.wc.f1{background:#1679c9;color:#fff}.wc.f2{background:#2fb36b;color:#fff}.wc.f3{background:#a66cff;color:#fff}.wc.f4{background:#ff8a3d;color:#fff}.wc.f5{background:#19b5c9;color:#fff}.wc.f6{background:#ff6fb5;color:#fff}.wc.f7{background:#8a6a3d;color:#fff}.wc.f8{background:#13283f;color:#fff}
+.wc.blink{animation:blink .6s 4}
+.wc.no{animation:shake .35s}
+.wlist{display:grid;gap:8px}
+.wchip{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:16px;background:var(--card);box-shadow:0 4px 0 var(--line);font-weight:800;font-size:19px}
+.wchip .flag{font-size:28px}
+.wchip.found{background:var(--leaf);color:#fff;box-shadow:none}
+.wchip.found b{text-decoration:line-through;text-decoration-thickness:3px}
+.wchip.miss{background:var(--line)}
 .note{max-width:1100px;margin:0 auto 24px;padding:0 max(5vw,16px);color:var(--soft);font-size:14px}
 .warn{background:#fff0c2;color:#5a4300;border-radius:14px;padding:10px 14px;margin:0 auto 14px;max-width:1100px}
 
@@ -147,7 +163,7 @@ button:focus-visible{outline:4px solid var(--sun);outline-offset:3px}
 .confetti i{position:absolute;top:-20px;width:12px;height:18px;border-radius:3px;animation:fall 1.4s ease-in forwards}
 @keyframes fall{to{transform:translateY(105vh) rotate(720deg)}}
 
-@media(max-width:760px){.heroin{grid-template-columns:1fr}.globe{max-height:200px;order:-1}.modes{grid-template-columns:1fr}.spell{grid-template-columns:1fr}.balloons{max-height:200px}}
+@media(max-width:760px){.ws{grid-template-columns:1fr}.wlist{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.heroin{grid-template-columns:1fr}.globe{max-height:200px;order:-1}.modes{grid-template-columns:1fr}.spell{grid-template-columns:1fr}.balloons{max-height:200px}}
 @media(max-width:520px){.opts{grid-template-columns:1fr}.feedback,.detail{grid-template-columns:auto minmax(0,1fr)}.feedback .next,.detail .ghost{grid-column:1/-1}.bar .brand span{display:none}.mode{grid-template-columns:72px minmax(0,1fr)}.mode svg{width:72px;height:72px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -208,6 +224,10 @@ button:focus-visible{outline:4px solid var(--sun);outline-offset:3px}
     <button class="mode" data-mode="spell">
       <svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#e2f6e9"/><path d="M30 46l14 26M48 44v28M66 46L52 72" stroke="#7a8a9a" stroke-width="2"/><ellipse cx="30" cy="32" rx="12" ry="15" fill="#ff5a5f"/><ellipse cx="48" cy="26" rx="12" ry="15" fill="#ffc83d"/><ellipse cx="66" cy="32" rx="12" ry="15" fill="#1679c9"/><path d="M38 70h20l-3 12H41z" fill="#a0703f"/></svg>
       <div><h2>Spell It</h2><p>Guess the letters before all the balloons pop!</p></div>
+    </button>
+    <button class="mode wide" data-mode="words">
+      <svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#efe4ff"/><rect x="20" y="20" width="56" height="56" rx="10" fill="#fff" stroke="#a66cff" stroke-width="3"/><rect x="24" y="40" width="48" height="16" rx="8" fill="#ffc83d"/><g font-family="Fredoka,sans-serif" font-weight="700" font-size="13" fill="#13283f" text-anchor="middle"><text x="34" y="35">K</text><text x="48" y="35">Q</text><text x="62" y="35">E</text><text x="34" y="53">P</text><text x="48" y="53">E</text><text x="62" y="53">R</text><text x="34" y="71">L</text><text x="48" y="71">A</text><text x="62" y="71">U</text></g></svg>
+      <div><h2>Word Search</h2><p>Find the hidden countries. Drag across the letters, or tap the first letter and then the last. A new puzzle every time!</p></div>
     </button>
   </div>
   <p class="note">Stars and stamps are saved on this tablet. The Map game needs an internet connection to load the map.</p>
@@ -474,14 +494,14 @@ const SCREENS=['home','game','done','passport'];
 function show(id){SCREENS.forEach(s=>$(s).hidden=s!==id);$('homeBtn').hidden=id==='home';window.scrollTo(0,0);try{speechSynthesis.cancel()}catch(e){}}
 
 /* ---------- round setup ---------- */
-const ROUND={flags:10,map:8,clues:8,spell:5};
+const ROUND={flags:10,map:8,clues:8,spell:5,words:6};
 /* Easy = well-known countries; Medium adds more; Hard = all 195 */
 const EASY='SG MY ID TH VN PH CN JP KR IN AU NZ US CA MX BR AR GB FR DE IT ES PT NL CH SE NO RU EG ZA KE NG GR TR SA AE IE BE DK FI PL AT CL PE CO JM CU NP PK LK BD KH'.split(' ');
 const MEDIUM=EASY.concat('MM LA BN MN KP KZ IR IQ IL JO QA KW LB AF UZ MV BT TL MA DZ TN LY GH ET TZ UG MG ZW ZM NA BW SN CM SD SO CD BO VE EC UY PY CR PA GT HN DO HT BS HR CZ HU UA IS RO BG RS SK SI LT LV EE BY LU MC VA MT CY FJ PG WS TO'.split(' '));
 const LV={
-  easy:  {ids:EASY,  n:3,same:false,lives:9,flag:true, first:true, clues:2,map:'close', hint:1,maxLen:9},
-  medium:{ids:MEDIUM,n:4,same:false,lives:8,flag:true, first:false,clues:1,map:'region',hint:2,maxLen:11},
-  hard:  {ids:null,  n:4,same:true, lives:6,flag:false,first:false,clues:1,map:'world', hint:2,maxLen:99}};
+  easy:  {ids:EASY,  n:3,same:false,lives:9,flag:true, first:true, clues:2,map:'close', hint:1,maxLen:9, ws:{size:8, n:5,dirs:[[1,0],[0,1]]}},
+  medium:{ids:MEDIUM,n:4,same:false,lives:8,flag:true, first:false,clues:1,map:'region',hint:2,maxLen:11,ws:{size:10,n:7,dirs:[[1,0],[0,1],[1,1]]}},
+  hard:  {ids:null,  n:4,same:true, lives:6,flag:false,first:false,clues:1,map:'world', hint:2,maxLen:99,ws:{size:12,n:9,dirs:[[1,0],[0,1],[1,1],[-1,0],[0,-1],[-1,-1],[1,-1],[-1,1]]}}};
 const lv=()=>LV[save.diff]||LV.easy;
 const levelPool=()=>{const L=lv();return L.ids?L.ids.map(id=>BY[id]).filter(Boolean):C.slice()};
 const G={mode:'',list:[],i:0,res:[],wrong:0,done:false,newStamps:[]};
@@ -507,7 +527,7 @@ function start(mode){
   show('game');renderQ();
 }
 function progressDots(){return `<div class="progress" aria-label="Question ${G.i+1} of ${G.list.length}">${G.list.map((c,i)=>`<i class="${G.res[i]===true?'ok':G.res[i]===false?'miss':i===G.i?'now':''}"></i>`).join('')}</div>`}
-function renderQ(){G.wrong=0;G.done=false;({flags:renderFlags,map:renderMap,clues:renderClues,spell:renderSpell})[G.mode]()}
+function renderQ(){G.wrong=0;G.done=false;({flags:renderFlags,map:renderMap,clues:renderClues,spell:renderSpell,words:renderWords})[G.mode]()}
 
 function win(c){
   G.done=true;G.res[G.i]=true;save.stars++;
@@ -579,6 +599,65 @@ function renderSpell(){
     else{b.classList.add('bad');oops();const bl=$('bl'+st.misses);if(bl)bl.classList.add('popped');st.misses++;
       if(st.misses>=lives){$('bsvg').classList.add('landed');drawWord(true);lose();endSpell()}}};
   function endSpell(){$('game').querySelectorAll('.key').forEach(k=>k.disabled=true);$('fb').innerHTML=feedbackHTML(c,G.res[G.i]);bindNext(c)}
+}
+
+/* ---------- mode: word search (new random puzzle every time) ---------- */
+function renderWords(){
+  const W=lv().ws,N=W.size;const key=c=>norm(c.n).replace(/[^A-Z]/g,'');
+  let pool=shuffle(levelPool().filter(c=>{const k=key(c).length;return k>=4&&k<=N}));
+  const fresh=pool.filter(c=>!save.stamps[c.id]).slice(0,Math.ceil(W.n*0.7));
+  pool=fresh.concat(pool.filter(c=>!fresh.includes(c)));
+  let grid=[],placed=[];
+  for(let attempt=0;attempt<25;attempt++){
+    grid=Array.from({length:N},()=>Array(N).fill(''));placed=[];
+    for(const c of pool){if(placed.length>=W.n)break;const w=key(c);if(placed.some(p=>p.w===w))continue;
+      for(let t=0;t<200;t++){const d=W.dirs[rnd(W.dirs.length)],dx=d[0],dy=d[1];const x0=rnd(N),y0=rnd(N);const x1=x0+dx*(w.length-1),y1=y0+dy*(w.length-1);
+        if(x1<0||x1>=N||y1<0||y1>=N)continue;let fit=true;
+        for(let i=0;i<w.length;i++){const g=grid[y0+dy*i][x0+dx*i];if(g&&g!==w[i]){fit=false;break}}
+        if(!fit)continue;const cells=[];
+        for(let i=0;i<w.length;i++){grid[y0+dy*i][x0+dx*i]=w[i];cells.push((y0+dy*i)*N+x0+dx*i)}
+        placed.push({c,w,cells});break}}
+    if(placed.length>=W.n)break;pool=shuffle(pool);
+  }
+  const AZ='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const letters=grid.flat().map(ch=>ch||AZ[rnd(26)]);
+  placed.sort((a,b)=>a.c.n.localeCompare(b.c.n));
+  G.list=placed.map(p=>p.c);G.res=[];G.i=0;G.done=false;
+  const found=new Set();
+  $('game').innerHTML=`<div class="qcard"><p class="ask">Find ${placed.length} countries!</p><p style="margin:6px 0 0;color:var(--soft)">Drag across a word, or tap its first letter and then its last letter.</p></div>
+  <div class="ws"><div class="wsbox"><div class="wsgrid" id="wsgrid" style="--n:${N};grid-template-columns:repeat(${N},minmax(0,1fr))">${letters.map((ch,i)=>`<div class="wc" data-i="${i}">${ch}</div>`).join('')}</div></div>
+  <div><div class="wlist" id="wlist">${placed.map((p,i)=>`<div class="wchip" id="wch${i}">${p.c.f}<b>${esc(p.c.n)}</b></div>`).join('')}</div>
+  <div class="tools" style="justify-content:flex-start"><button class="ghost" id="wsHint">Hint</button><button class="ghost" id="wsNew">New puzzle</button><button class="ghost" id="wsGive">Show answers</button></div></div></div><div id="fb"></div>`;
+  const gridEl=$('wsgrid');const cellEls=[...gridEl.children];
+  const cellAt=(x,y)=>{const el=document.elementFromPoint(x,y);const c=el&&el.closest?el.closest('.wc'):null;return c&&gridEl.contains(c)?+c.dataset.i:null};
+  const line=(a,b)=>{const ax=a%N,ay=Math.floor(a/N),bx=b%N,by=Math.floor(b/N);const ddx=bx-ax,ddy=by-ay;
+    if(!(ddx===0||ddy===0||Math.abs(ddx)===Math.abs(ddy)))return null;const len=Math.max(Math.abs(ddx),Math.abs(ddy));const sx=Math.sign(ddx),sy=Math.sign(ddy);
+    const out=[];for(let i=0;i<=len;i++)out.push((ay+sy*i)*N+ax+sx*i);return out};
+  const paint=cells=>{cellEls.forEach(e=>e.classList.remove('sel'));(cells||[]).forEach(i=>cellEls[i].classList.add('sel'))};
+  const same=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
+  let pending=null,drag=null;
+  const clearStart=()=>{if(pending!=null)cellEls[pending].classList.remove('start');pending=null};
+  function attempt(cells){
+    paint(null);if(!cells||cells.length<2)return;
+    const k=placed.findIndex((p,i)=>!found.has(i)&&(same(p.cells,cells)||same(p.cells,cells.slice().reverse())));
+    if(k<0){cells.forEach(i=>{const e=cellEls[i];e.classList.remove('no');void e.offsetWidth;e.classList.add('no')});oops();return}
+    found.add(k);placed[k].cells.forEach(i=>{const e=cellEls[i];if(![...e.classList].some(c=>/^f\d$/.test(c)))e.classList.add('f'+(k%9))});
+    $('wch'+k).classList.add('found');G.i=k;win(placed[k].c);G.done=false;say(placed[k].c.n);
+    if(found.size===placed.length)setTimeout(finish,1300);
+  }
+  gridEl.addEventListener('pointerdown',e=>{const i=cellAt(e.clientX,e.clientY);if(i==null)return;e.preventDefault();
+    if(pending!=null&&pending!==i){const a=pending;clearStart();attempt(line(a,i));return}
+    try{gridEl.setPointerCapture(e.pointerId)}catch(_){}
+    drag={a:i,b:i};paint([i])});
+  gridEl.addEventListener('pointermove',e=>{if(!drag)return;const i=cellAt(e.clientX,e.clientY);if(i==null||i===drag.b)return;drag.b=i;paint(line(drag.a,i)||[drag.a])});
+  const up=()=>{if(!drag)return;const d=drag;drag=null;
+    if(d.a===d.b){paint(null);if(pending===d.a){clearStart()}else{clearStart();pending=d.a;cellEls[d.a].classList.add('start');tick()}return}
+    clearStart();attempt(line(d.a,d.b))};
+  gridEl.addEventListener('pointerup',up);gridEl.addEventListener('pointercancel',()=>{drag=null;paint(null)});
+  $('wsHint').onclick=()=>{const k=placed.findIndex((p,i)=>!found.has(i));if(k<0)return;const e=cellEls[placed[k].cells[0]];e.classList.remove('blink');void e.offsetWidth;e.classList.add('blink');say('Look for '+placed[k].c.n)};
+  $('wsNew').onclick=()=>{tick();renderWords()};
+  $('wsGive').onclick=()=>{placed.forEach((p,k)=>{if(found.has(k))return;G.res[k]=false;$('wch'+k).classList.add('miss');p.cells.forEach(i=>{const e=cellEls[i];if(![...e.classList].some(c=>/^f\d$/.test(c)))e.classList.add('f'+(k%9))})});
+    $('fb').innerHTML=`<div class="tools"><button class="next" id="wsDone">Finish</button></div>`;$('wsDone').onclick=finish};
 }
 
 /* ---------- mode: map ---------- */
